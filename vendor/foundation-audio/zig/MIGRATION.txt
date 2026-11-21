@@ -1,0 +1,82 @@
+foundation.audio — Zig migration branch
+=======================================
+
+Toolchain: Zig 0.17.0, pinned in ../.zig-version.
+Default Android build: ../zig-build.gradle.kts, consuming separate FFmpeg DLLs/SOs.
+No Cargo, cargo-ndk, bindgen, Rust FFmpeg wrappers, CPAL, Oboe or model runtime
+is used by this build. Original Rust worktree files remain as a reference and
+to preserve pre-existing uncommitted edits. They are not linked into the Zig library.
+
+Implementation map
+------------------
+types / queue       -> src/queue.zig, engine.zig, protocol.zig
+util / source       -> src/decoder.zig, file_io.zig, stream.zig, stream_decoder.zig
+renderer            -> src/dsp.zig, ring.zig, loudness.zig, engine.zig
+engine              -> src/engine.zig
+cast remux          -> src/cast.zig
+fabric-adapter      -> src/fabric.zig, source.zig, assets.zig, protocol.zig, transport.zig
+jni-bridge          -> src/jni.zig
+desktop C interface -> include/foundation_audio.h, src/root.zig
+
+The device backend is miniaudio 0.11.25 (pinned source and license in vendor/).
+device.c also contains small platform I/O and ARMv7 atomic-operation shims.
+FFmpeg remains an external C dependency. Zig's explicit translate-c build step
+imports its headers directly; switching languages does not remove FFmpeg itself.
+
+Compatibility and verification boundary
+---------------------------------------
+Android JNI method names, parameter types, 32-byte status buffers and MFD1
+metadata buffers are retained, including FabricRenderer and cast stream methods.
+Pure Zig consumers use root.zig; non-Zig consumers can use the C header.
+Rust-specific source APIs and async fabric-sdk traits are replaced by Zig APIs
+and injected transport callbacks. A Rust application needs a C ABI adapter or
+an updated consumer; this is not a source-compatible Cargo package replacement.
+Fabric clock estimates still belong to the Fabric SDK and are injected through
+protocol.Clock / Renderer.setClock; the JNI adapter retains identity-clock behavior.
+
+AI/karaoke and music-analysis inference are intentionally disabled for this
+migration. JNI compatibility methods report Off / no analysis data and load no
+models. Offline model-training files are not altered.
+
+Headless tests exercise decoding, resampling, seek, queue movement/shuffle,
+crossfade math, silence timeline mapping, pause ramp, loudness, Matroska remux,
+stream framing/cancellation, metadata, assets and protocol barriers. Android
+build and symbol checks do not substitute for real-device playback, routing,
+Bluetooth, latency, or end-to-end multi-device synchronization testing.
+No Android device was connected during the migration.
+
+The companion clef branch rewrite/zig-audio replaces the audio build with
+compileAudioZig, invoking this repository's buildAndroidNative task and packaging
+every .so under jniLibs/<abi>, plus build/generated/audioAssets. Its old
+compileRustAndroid name is only a compatibility alias. Other Rust libraries in
+clef are separate and keep their existing build. Consumers on other branches
+must make the same change; invoking Cargo would overwrite the Zig JNI library.
+
+Consumer verification: :app:compileAudioZig passed. Full native/assets merge is
+blocked by the existing mixed AGP versions: clef 9.2.1 versus lyrics-ui 9.3.2.
+The clef branch updates its Gradle wrapper to 9.5.0, required by lyrics-ui, but
+does not change the application's unrelated AGP/Kotlin project configuration.
+Windows shared-library C ABI playback, including a UTF-8 filename, passed.
+
+FFmpeg distribution
+-------------------
+Android: ffmpeg-android-shared/<abi>, built from the exact FFmpeg submodule commit.
+Windows: tools/build-ffmpeg-windows.ps1 builds ffmpeg-windows-shared using Zig CC.
+The machine's pre-existing C:/Environments/Tools/ffmpeg build enables GPL and
+version3; it is not the dependency to redistribute with this library.
+Static fallback is disabled. On Windows, lib*.dll.a are DLL import stubs, not
+archives containing the FFmpeg implementation. Android uses explicit lib*.so.
+
+Run gradlew packageAudioDistribution for separate JNI/FFmpeg libraries, notices,
+build parameters and corresponding FFmpeg source. Run tools/verify-native.py
+to check all JNI exports, ELF dependencies, page alignment and provenance.
+The application must carry the notices and provide matching sources as described
+in FFMPEG-NOTICE.txt. Dynamic linking alone is not a blanket compliance guarantee.
+
+Local build prerequisites
+-------------------------
+ZIG_EXE or zig.executable may select the pinned compiler.
+Android NDK 29.0.14206865, minimum API 26.
+Android FFmpeg rebuild currently uses the existing WSL/Linux-NDK dependency
+builder on Windows, only when -PrebuildFfmpeg is explicitly supplied.
+Ordinary Zig edits and incremental Android builds run on Windows directly.

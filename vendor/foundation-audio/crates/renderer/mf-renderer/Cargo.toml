@@ -1,0 +1,13 @@
+[package]
+name = "renderer"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "renderer"
+crate-type = ["rlib"]
+
+[dependencies]
+anyhow = "1.0.102"
+cpal = "0.17.3"
+ringbuf = "0.4.8"

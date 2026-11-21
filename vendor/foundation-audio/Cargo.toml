@@ -1,0 +1,25 @@
+[workspace]
+members = [
+    "crates/types",
+    "crates/util",
+    "crates/queue",
+    "crates/source",
+    "crates/renderer",
+    "crates/engine",
+    "crates/fabric-adapter",
+    "crates/jni-bridge",
+    "crates/cli-player",
+]
+resolver = "2"
+exclude = [
+    "crates/core",
+    "crates/decoder-ffmpeg",
+    "crates/renderer/mf-renderer",
+]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

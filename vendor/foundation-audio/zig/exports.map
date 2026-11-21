@@ -1,0 +1,8 @@
+{
+  global:
+    Java_com_mocharealm_foundation_audio_*;
+    mf_get_playback_clock;
+    mf_get_audio_rms;
+    fa_*;
+  local: *;
+};

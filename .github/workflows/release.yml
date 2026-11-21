@@ -1,0 +1,44 @@
+name: Release packages
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  packages:
+    uses: ./.github/workflows/build.yml
+    with:
+      release: true
+    secrets: inherit
+  publish:
+    needs: packages
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download signed packages
+        uses: actions/download-artifact@v7
+        with:
+          name: bell-android
+          path: release-assets
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          mkdir -p release-assets-renamed
+          while IFS= read -r -d '' file; do
+            relative="${file#release-assets/}"
+            asset_name="${relative//\//-}"
+            cp "$file" "release-assets-renamed/$asset_name"
+          done < <(find release-assets -type f -print0)
+          mapfile -d '' assets < <(find release-assets-renamed -type f -print0)
+          test "${#assets[@]}" -gt 0
+          gh release create "$GITHUB_REF_NAME" "${assets[@]}" \
+            --verify-tag \
+            --title "Bell $GITHUB_REF_NAME" \
+            --generate-notes

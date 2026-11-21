@@ -1,0 +1,16 @@
+[package]
+name = "source"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "source"
+crate-type = ["rlib"]
+
+[dependencies]
+ffmpeg-next = "8.1.0"
+ringbuf = "0.4.8"
+libc = "0.2"
+bytemuck = "1.24"
+types = { path = "../types" }
+util = { path = "../util" }
