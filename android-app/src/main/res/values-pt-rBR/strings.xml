@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Bell</string>
+    <string name="network_permission_description">Acesso à rede local é necessário para conectar-se ao seu servidor Jellyfin.</string>
+    <string name="grant_network_permission">Permitir acesso à rede local</string>
+    <string name="network_permission_title">Conectar ao servidor de música</string>
+    <string name="next_track">Próxima faixa</string>
+    <string name="previous_track">Faixa anterior</string>
+    <string name="play">Tocar</string>
+    <string name="pause">Pausar</string>
+    <string name="playback_channel">Reprodução</string>
+    <string name="preparing_playback">Preparando reprodução...</string>
 </resources>
