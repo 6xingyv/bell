@@ -421,6 +421,8 @@ fun GlasmioSearchToolbar(
     morphProgress: Float = 1f,
     collapsedContent: (@Composable BoxScope.() -> Unit)? = null,
     enabled: Boolean = true,
+    showCancel: Boolean = true,
+    observeChildPress: Boolean = false,
 ) {
     val colors = LocalGlassColors.current
     val backdrop = LocalGlassBackdrop.current
@@ -437,6 +439,7 @@ fun GlasmioSearchToolbar(
             backdrop = backdrop,
             shape = Capsule(),
             style = style,
+            observeChildPress = observeChildPress,
         ) {
             Row(
                 Modifier.fillMaxSize().padding(horizontal = 12.dp).graphicsLayer {
@@ -481,25 +484,27 @@ fun GlasmioSearchToolbar(
                 }.clearAndSetSemantics {}, content = collapsedContent)
             }
         }
-        Spacer(Modifier.width(8.dp * cancelReveal))
-        Box(
-            Modifier.width(48.dp * cancelReveal).height(48.dp)
-                .graphicsLayer {
-                    alpha = cancelReveal
-                    val scale = 0.85f + 0.15f * cancelReveal
-                    scaleX = scale
-                    scaleY = scale
-                },
-            contentAlignment = Alignment.Center,
-        ) {
-            GlasmioIconButton(
-                onClick = onCancel,
-                backdrop = backdrop,
-                style = style,
-                modifier = Modifier.size(48.dp).testTag("GlasmioSearchCancelSurface"),
-                enabled = enabled && cancelReveal > 0.5f,
+        if (showCancel) {
+            Spacer(Modifier.width(8.dp * cancelReveal))
+            Box(
+                Modifier.width(48.dp * cancelReveal).height(48.dp)
+                    .graphicsLayer {
+                        alpha = cancelReveal
+                        val scale = 0.85f + 0.15f * cancelReveal
+                        scaleX = scale
+                        scaleY = scale
+                    },
+                contentAlignment = Alignment.Center,
             ) {
-                SfIcon("xmark", cancelLabel, size = 20.dp, tint = colors.content)
+                GlasmioIconButton(
+                    onClick = onCancel,
+                    backdrop = backdrop,
+                    style = style,
+                    modifier = Modifier.size(48.dp).testTag("GlasmioSearchCancelSurface"),
+                    enabled = enabled && cancelReveal > 0.5f,
+                ) {
+                    SfIcon("xmark", cancelLabel, size = 20.dp, tint = colors.content)
+                }
             }
         }
     }

@@ -949,6 +949,8 @@ fun GlassSurface(
     material: NavigationGlassMaterial? = null,
     frostRadius: Dp? = null,
     preserveBackdropColors: Boolean = false,
+    observeChildPress: Boolean = false,
+    pressInteraction: InteractiveHighlight? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val colors = LocalGlassColors.current
@@ -971,7 +973,7 @@ fun GlassSurface(
     val navigationFlexSize = remember(nativeNavigationFlex) {
         if (nativeNavigationFlex) mutableStateOf(Size.Zero) else null
     }
-    val interactiveHighlight = remember(animationScope, navigationFlexSize, density) {
+    val interactiveHighlight = pressInteraction ?: remember(animationScope, navigationFlexSize, density) {
         InteractiveHighlight(animationScope = animationScope).apply {
             pressAnimationSpec = navigationFlexSize?.let { measuredSize ->
                 { pressed ->
@@ -1256,7 +1258,8 @@ fun GlassSurface(
                 .then(
                     if (sharesToolbarSurface || sharesContactSurface) Modifier
                     else if (pressHighlight != null) externalHighlightModifier
-                    else if (onClick != null && enabled) interactiveHighlight.modifier else Modifier,
+                    else if ((onClick != null || observeChildPress || pressInteraction != null) && enabled)
+                        interactiveHighlight.modifier else Modifier,
                 )
                 .then(
                     if (onClick != null) {
@@ -1275,9 +1278,8 @@ fun GlassSurface(
                             onClick = onClick,
                         )
                         click.then(if (enabled) interactiveHighlight.gestureModifier else Modifier)
-                    } else {
-                        Modifier
-                    },
+                    } else if (observeChildPress && enabled) interactiveHighlight.gestureModifier
+                    else Modifier,
                 )
                 .then(if (toolbarMember != null && !sharesToolbarSurface) {
                     Modifier.drawWithContent { toolbarMember.drawForeground(this) }
