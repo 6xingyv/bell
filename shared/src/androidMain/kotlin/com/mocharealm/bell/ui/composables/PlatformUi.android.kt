@@ -102,8 +102,8 @@ actual fun BellField(
     GlasmioTextField(
         value,
         change,
+        modifier = Modifier.onFocusChanged { onFocusChanged(it.isFocused) },
         placeholder = hint,
-        onFocusChanged = onFocusChanged,
         keyboardOptions =
             if (onDone != null) KeyboardOptions(imeAction = ImeAction.Done)
             else KeyboardOptions.Default,
