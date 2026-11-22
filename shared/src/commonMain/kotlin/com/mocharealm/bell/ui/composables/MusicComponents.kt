@@ -67,20 +67,17 @@ fun MusicText(
             if (LocalMusicDark.current) Color.White else Color.Black
         } else color
     val additive = LocalMusicPlayerPlus.current && foreground.alpha < 1f
-    var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
-    val ranges =
-        remember(text, additive) { if (additive) musicColorGlyphRanges(text) else emptyList() }
-    val colorGlyphs =
-        remember(text, layout, ranges) {
-            layout
-                ?.takeIf { it.layoutInput.text.text == text }
-                ?.let { musicColorGlyphPath(it, ranges) }
+    val layout = if (additive) remember { mutableStateOf<TextLayoutResult?>(null) } else null
+    val blending = if (layout != null) {
+        val ranges = remember(text) { musicColorGlyphRanges(text) }
+        val colorGlyphs by remember(text, ranges, layout) {
+            derivedStateOf {
+                layout.value?.takeIf { it.layoutInput.text.text == text }
+                    ?.let { musicColorGlyphPath(it, ranges) }
+            }
         }
-    val plusPaint = rememberMusicPlusPaint()
-    val normalPaint = remember { Paint() }
-    val blending =
-        if (!additive) Modifier
-        else
+        val plusPaint = rememberMusicPlusPaint()
+        val normalPaint = remember { Paint() }
             Modifier.drawWithContent {
                 drawMusicTextLayers(
                     Rect(0f, 0f, this.size.width, this.size.height),
@@ -91,6 +88,7 @@ fun MusicText(
                     additive = true,
                 )
             }
+    } else Modifier
     Text(
         text,
         modifier.then(blending),
@@ -108,7 +106,7 @@ fun MusicText(
                 .musicTextStyle(),
         maxLines = lines,
         overflow = TextOverflow.Ellipsis,
-        onTextLayout = { if (additive) layout = it },
+        onTextLayout = if (layout == null) null else { result -> layout.value = result },
     )
 }
 
@@ -233,12 +231,9 @@ fun MusicTrackRow(
     fullWidthDivider: Boolean = false,
     swipeEnabled: Boolean = true,
 ) {
-    val menuStrings = rememberMenuStrings()
-
     val dark = LocalMusicDark.current
     val primary = if (dark) Color.White else Color.Black
     val secondary = primary.copy(alpha = .5f)
-    val share = rememberMusicSharer()
     val hasSubtitle = !numbered || !subtitle.isNullOrBlank()
     val row: @Composable () -> Unit = {
         Row(
@@ -271,16 +266,18 @@ fun MusicTrackRow(
             }
             MusicDownloadMarker(model, state, item, secondary)
             MusicMenu(
-                songMenu(
-                    menuStrings,
-                    model,
-                    state,
-                    item,
-                    share,
-                    offlineOnly = LocalMusicOffline.current,
-                ),
-                Modifier.size(40.dp),
-                MusicMenuStyle.Plain,
+                modifier = Modifier.size(40.dp),
+                style = MusicMenuStyle.Plain,
+                expandedActions = {
+                    songMenu(
+                        rememberMenuStrings(),
+                        model,
+                        state,
+                        item,
+                        rememberMusicSharer(),
+                        offlineOnly = LocalMusicOffline.current,
+                    )
+                },
             )
         }
     }
@@ -289,7 +286,11 @@ fun MusicTrackRow(
         Modifier.padding(start = if (fullWidthDivider) 0.dp else if (numbered) 31.dp else 60.dp)
             .fillMaxWidth()
             .height(.5.dp)
-            .musicSwipeDivider(beforeId = item.id, afterId = tracks.getOrNull(index + 1)?.id)
+            .then(
+                if (swipeEnabled)
+                    Modifier.musicSwipeDivider(beforeId = item.id, afterId = tracks.getOrNull(index + 1)?.id)
+                else Modifier
+            )
             .musicBackground(primary.copy(alpha = if (dark) .13f else .12f))
     )
 }

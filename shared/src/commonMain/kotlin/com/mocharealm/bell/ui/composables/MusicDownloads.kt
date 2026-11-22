@@ -20,13 +20,17 @@ import com.mocharealm.bell.ui.*
 import com.mocharealm.bell.ui.utils.LocalMusicPlayerPlus
 import com.mocharealm.bell.ui.utils.musicBackground
 import com.mocharealm.bell.ui.utils.musicPlus
-import kotlinx.coroutines.flow.*
 import org.jetbrains.compose.resources.stringResource
 
+internal val LocalMusicDownloadProgress = staticCompositionLocalOf<State<Map<String, Float>>?> { null }
+
 @Composable
-private fun downloadProgress(model: BellStore, id: String): State<Float?> =
-    remember(model, id) { model.downloadProgress.map { it[id] }.distinctUntilChanged() }
-        .collectAsState(null)
+private fun downloadProgress(model: BellStore, id: String): State<Float?> {
+    val progress = LocalMusicDownloadProgress.current ?: model.downloadProgress.collectAsState()
+    return remember(progress, id) {
+        derivedStateOf(structuralEqualityPolicy()) { progress.value[id] }
+    }
+}
 
 @Composable
 private fun DownloadRing(progress: Float, color: Color, modifier: Modifier) {

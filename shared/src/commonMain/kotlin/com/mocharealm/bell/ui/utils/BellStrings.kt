@@ -6,9 +6,11 @@ import com.mocharealm.bell.resources.*
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
+private val BellStringPlaceholder = Regex("%([0-9]+)" + Regex.escape("$") + "s")
+
 /** Resolves parameters after resources are captured outside a LazyListScope/callback. */
 fun formatBellString(pattern: String, vararg args: Any?): String =
-    Regex("%([0-9]+)" + Regex.escape("$") + "s").replace(pattern) { match ->
+    BellStringPlaceholder.replace(pattern) { match ->
         args.getOrNull(match.groupValues[1].toInt() - 1)?.toString().orEmpty()
     }
 

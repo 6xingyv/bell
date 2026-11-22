@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
@@ -36,6 +37,10 @@ import org.jetbrains.compose.resources.stringResource
 private class MusicSwipeOwner {
     var id by mutableStateOf<String?>(null)
     var visibility by mutableFloatStateOf(0f)
+}
+
+private class MusicSwipeCoordinates {
+    var row: LayoutCoordinates? = null
 }
 
 private val LocalOpenMusicSwipe = staticCompositionLocalOf { MusicSwipeOwner() }
@@ -84,8 +89,8 @@ internal fun MusicSwipeRow(
     val downloadLabel = stringResource(Res.string.download)
     val deleteLabel = stringResource(Res.string.delete_from_library)
     val plus = LocalMusicPlayerPlus.current
-    val plusPaint = rememberMusicPlusPaint()
-    val fillShape = musicShape(26.dp * (abs(offset) / stepForCorners(density)).coerceIn(0f, 1f))
+    val coordinates = remember { MusicSwipeCoordinates() }
+    val swipeVisible by remember(item.id) { derivedStateOf { abs(offset) > .01f } }
     var windowX by remember { mutableFloatStateOf(0f) }
     val windowWidth = LocalWindowInfo.current.containerSize.width.toFloat()
     fun update(value: Float) {
@@ -127,7 +132,13 @@ internal fun MusicSwipeRow(
         model.accept(BellIntent.Dialog(LibraryDialog.Delete(item)))
         close()
     }
-    LaunchedEffect(owner.id) { if (owner.id != item.id && !dragging) settle(0f) }
+    if (swipeVisible || dragging) {
+        LaunchedEffect(owner, item.id) {
+            snapshotFlow { owner.id to dragging }.collect { (openId, isDragging) ->
+                if (openId != item.id && !isDragging && offset != 0f) settle(0f)
+            }
+        }
+    }
     DisposableEffect(item.id) {
         onDispose {
             settling?.cancel()
@@ -146,23 +157,26 @@ internal fun MusicSwipeRow(
     Box(
         Modifier.fillMaxWidth()
             .onSizeChanged { dimensions = it }
-            .onGloballyPositioned { windowX = it.positionInWindow().x }
+            .onGloballyPositioned { coordinates.row = it }
     ) {
+        if (swipeVisible) {
+        val plusPaint = if (plus) rememberMusicPlusPaint() else null
         Canvas(Modifier.matchParentSize()) {
             if (abs(offset) < .01f) return@Canvas
             val left = -windowX + offset
             val right = windowWidth - windowX + offset
             if (right <= left) return@Canvas
-            val outline =
-                fillShape.createOutline(Size(right - left, size.height), layoutDirection, this)
+            val corner = 26.dp * (abs(offset) / 62.dp.toPx()).coerceIn(0f, 1f)
+            val outline = musicShape(corner).createOutline(
+                Size(right - left, size.height), layoutDirection, this,
+            )
             translate(left, 0f) {
                 val overlay =
                     Color.White.copy(alpha = .16f * (abs(offset) / revealDistance).coerceIn(0f, 1f))
-                if (plus) drawWithMusicPlus(plusPaint) { drawOutline(outline, overlay) }
+                if (plusPaint != null) drawWithMusicPlus(plusPaint) { drawOutline(outline, overlay) }
                 else drawOutline(outline, overlay, blendMode = BlendMode.SrcOver)
             }
         }
-        if (abs(offset) > .01f)
             Box(Modifier.matchParentSize()) {
                 val leading = offset > 0
                 val two = if (leading) hasManualQueue else !downloaded
@@ -233,6 +247,7 @@ internal fun MusicSwipeRow(
                         if (leading) next() else delete()
                     }
             }
+        }
         Box(
             Modifier.graphicsLayer { translationX = offset }
                 .pointerInput(
@@ -241,12 +256,17 @@ internal fun MusicSwipeRow(
                     hasManualQueue,
                     width,
                     diameter,
-                    leadingGutter,
-                    trailingGutter,
+                    windowWidth,
                 ) {
+                    var startGutter = 0f
+                    var endGutter = 0f
                     detectHorizontalDragGestures(
                         onDragStart = {
                             settling?.cancel()
+                            windowX = coordinates.row?.takeIf { it.isAttached }
+                                ?.positionInWindow()?.x?.takeIf { it.isFinite() } ?: 0f
+                            startGutter = windowX.coerceAtLeast(0f)
+                            endGutter = (windowWidth - windowX - width).coerceAtLeast(0f)
                             dragging = true
                             owner.id = item.id
                             update(offset)
@@ -265,12 +285,12 @@ internal fun MusicSwipeRow(
                                     if (model.canDelete(item)) delete() else close()
                                 } else download()
                             } else {
-                                val gutter = if (offset > 0) leadingGutter else trailingGutter
+                                val gutter = if (offset > 0) startGutter else endGutter
                                 if (abs(offset) > gutter + gap + diameter * .5f)
                                     settle(
                                         if (offset > 0)
-                                            leadingGutter + step * (if (hasManualQueue) 2 else 1)
-                                        else -(trailingGutter + step * (if (downloaded) 1 else 2))
+                                            startGutter + step * (if (hasManualQueue) 2 else 1)
+                                        else -(endGutter + step * (if (downloaded) 1 else 2))
                                     )
                                 else close()
                             }
@@ -290,9 +310,6 @@ internal fun MusicSwipeRow(
         }
     }
 }
-
-private fun stepForCorners(density: androidx.compose.ui.unit.Density) =
-    with(density) { 62.dp.toPx() }
 
 @Composable
 private fun SwipeAction(

@@ -25,6 +25,7 @@ import com.mocharealm.bell.ui.composables.BellBackHandler
 import com.mocharealm.bell.ui.composables.BellTheme
 import com.mocharealm.bell.ui.composables.LocalMusicArtworkColors
 import com.mocharealm.bell.ui.composables.LocalMusicDark
+import com.mocharealm.bell.ui.composables.LocalMusicDownloadProgress
 import com.mocharealm.bell.ui.composables.MusicAccent
 import com.mocharealm.bell.ui.composables.MusicHeader
 import com.mocharealm.bell.ui.composables.MusicHeaderAction
@@ -86,6 +87,7 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun BellApp(model: BellStore) {
+    val downloadProgress = model.downloadProgress.collectAsState()
     val mixTitle = stringResource(Res.string.mix_title)
 
     val routeTitles =
@@ -190,6 +192,7 @@ fun BellApp(model: BellStore) {
                 Box {
                     CompositionLocalProvider(
                         LocalMusicArtworkColors provides artworkColors,
+                        LocalMusicDownloadProgress provides downloadProgress,
                         LocalMusicPlayerBackdropHost provides playerBackdrop,
                         LocalArtworkNavigation provides artworkNavigation,
                         LocalPlayerMotion provides playerMotion,
