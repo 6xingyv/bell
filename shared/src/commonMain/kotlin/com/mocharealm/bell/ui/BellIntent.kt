@@ -10,6 +10,7 @@ sealed interface BellIntent {
     data class HomeVisibility(val visible: Boolean) : BellIntent
 
     data object RefreshHome : BellIntent
+
     data object PullToRefreshHome : BellIntent
 
     data object LoadListeningGroups : BellIntent

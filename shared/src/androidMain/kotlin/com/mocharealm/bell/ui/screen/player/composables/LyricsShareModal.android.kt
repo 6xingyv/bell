@@ -2,9 +2,9 @@
 package com.mocharealm.bell.ui.screen.player.composables
 
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.LocalContentColor
@@ -65,7 +65,10 @@ internal actual fun LyricsShareModal(
                 )
             },
         ) {
-            Column(Modifier.fillMaxSize().padding(LocalGlasmioSheetContentPadding.current), content = content)
+            Column(
+                Modifier.fillMaxSize().padding(LocalGlasmioSheetContentPadding.current),
+                content = content,
+            )
         }
     }
 }

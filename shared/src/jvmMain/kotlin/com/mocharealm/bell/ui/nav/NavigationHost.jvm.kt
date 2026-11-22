@@ -98,11 +98,14 @@ actual fun MusicPage(
         }
     }
     if (onRefresh == null) pageList()
-    else androidx.compose.material3.pulltorefresh.PullToRefreshBox(
-        isRefreshing = refreshing,
-        onRefresh = onRefresh,
-        modifier = Modifier.fillMaxSize(),
-    ) { pageList() }
+    else
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            pageList()
+        }
 }
 
 @Composable actual fun MusicAlphabetIndex(sections: List<Pair<String, Int>>) {}

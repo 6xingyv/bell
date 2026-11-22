@@ -14,8 +14,8 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
@@ -134,9 +134,10 @@ internal fun MusicSwipeRow(
     }
     if (swipeVisible || dragging) {
         LaunchedEffect(owner, item.id) {
-            snapshotFlow { owner.id to dragging }.collect { (openId, isDragging) ->
-                if (openId != item.id && !isDragging && offset != 0f) settle(0f)
-            }
+            snapshotFlow { owner.id to dragging }
+                .collect { (openId, isDragging) ->
+                    if (openId != item.id && !isDragging && offset != 0f) settle(0f)
+                }
         }
     }
     DisposableEffect(item.id) {
@@ -160,23 +161,30 @@ internal fun MusicSwipeRow(
             .onGloballyPositioned { coordinates.row = it }
     ) {
         if (swipeVisible) {
-        val plusPaint = if (plus) rememberMusicPlusPaint() else null
-        Canvas(Modifier.matchParentSize()) {
-            if (abs(offset) < .01f) return@Canvas
-            val left = -windowX + offset
-            val right = windowWidth - windowX + offset
-            if (right <= left) return@Canvas
-            val corner = 26.dp * (abs(offset) / 62.dp.toPx()).coerceIn(0f, 1f)
-            val outline = musicShape(corner).createOutline(
-                Size(right - left, size.height), layoutDirection, this,
-            )
-            translate(left, 0f) {
-                val overlay =
-                    Color.White.copy(alpha = .16f * (abs(offset) / revealDistance).coerceIn(0f, 1f))
-                if (plusPaint != null) drawWithMusicPlus(plusPaint) { drawOutline(outline, overlay) }
-                else drawOutline(outline, overlay, blendMode = BlendMode.SrcOver)
+            val plusPaint = if (plus) rememberMusicPlusPaint() else null
+            Canvas(Modifier.matchParentSize()) {
+                if (abs(offset) < .01f) return@Canvas
+                val left = -windowX + offset
+                val right = windowWidth - windowX + offset
+                if (right <= left) return@Canvas
+                val corner = 26.dp * (abs(offset) / 62.dp.toPx()).coerceIn(0f, 1f)
+                val outline =
+                    musicShape(corner)
+                        .createOutline(
+                            Size(right - left, size.height),
+                            layoutDirection,
+                            this,
+                        )
+                translate(left, 0f) {
+                    val overlay =
+                        Color.White.copy(
+                            alpha = .16f * (abs(offset) / revealDistance).coerceIn(0f, 1f)
+                        )
+                    if (plusPaint != null)
+                        drawWithMusicPlus(plusPaint) { drawOutline(outline, overlay) }
+                    else drawOutline(outline, overlay, blendMode = BlendMode.SrcOver)
+                }
             }
-        }
             Box(Modifier.matchParentSize()) {
                 val leading = offset > 0
                 val two = if (leading) hasManualQueue else !downloaded
@@ -263,8 +271,12 @@ internal fun MusicSwipeRow(
                     detectHorizontalDragGestures(
                         onDragStart = {
                             settling?.cancel()
-                            windowX = coordinates.row?.takeIf { it.isAttached }
-                                ?.positionInWindow()?.x?.takeIf { it.isFinite() } ?: 0f
+                            windowX =
+                                coordinates.row
+                                    ?.takeIf { it.isAttached }
+                                    ?.positionInWindow()
+                                    ?.x
+                                    ?.takeIf { it.isFinite() } ?: 0f
                             startGutter = windowX.coerceAtLeast(0f)
                             endGutter = (windowWidth - windowX - width).coerceAtLeast(0f)
                             dragging = true

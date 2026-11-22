@@ -761,9 +761,13 @@ class BellStore(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                mutable.update { if (it.session == session) it.copy(error = errorMapper(e)) else it }
+                mutable.update {
+                    if (it.session == session) it.copy(error = errorMapper(e)) else it
+                }
             } finally {
-                mutable.update { if (it.session == session) it.copy(refreshingHome = false) else it }
+                mutable.update {
+                    if (it.session == session) it.copy(refreshingHome = false) else it
+                }
             }
         }
     }
@@ -952,7 +956,8 @@ class BellStore(
         state.value.session?.let { artwork(it, item, width, offlineOnly) }
 
     internal fun artwork(session: Session, item: Item, width: Int, offlineOnly: Boolean): String? =
-        media.image(session, item) ?: if (offlineOnly) null else repository.image(session, item, width)
+        media.image(session, item)
+            ?: if (offlineOnly) null else repository.image(session, item, width)
 
     private fun download(item: Item, tracks: List<Item> = emptyList()) {
         if (downloadJobs[item.id]?.isActive == true) return

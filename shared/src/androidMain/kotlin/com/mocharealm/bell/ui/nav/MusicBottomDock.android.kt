@@ -8,12 +8,12 @@ import androidx.compose.ui.*
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
@@ -150,7 +150,9 @@ internal fun MusicBottomDock(
                 ) {
                     miniPlayer()
                 }
-                CompositionLocalProvider(LocalBottomControlContactMemberActive provides contactActive) {
+                CompositionLocalProvider(
+                    LocalBottomControlContactMemberActive provides contactActive
+                ) {
                     GlasmioNavigationBar(
                         tabs,
                         selected,
@@ -161,6 +163,7 @@ internal fun MusicBottomDock(
                         mainCompact,
                         CompactBottomControlSize,
                         backdrop = backdrop,
+                        keepCompactAccent = true,
                     )
                 }
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -171,7 +174,9 @@ internal fun MusicBottomDock(
                     val colors = LocalGlassColors.current
                     val labelAlpha = ((browse - .15f) / .65f).coerceIn(0f, 1f)
                     Box(
-                        Modifier.fillMaxWidth().padding(horizontal = sideInset).height(controlHeight)
+                        Modifier.fillMaxWidth()
+                            .padding(horizontal = sideInset)
+                            .height(controlHeight)
                     ) {
                         CompositionLocalProvider(
                             LocalBottomControlContactMemberActive provides contactActive
@@ -179,11 +184,12 @@ internal fun MusicBottomDock(
                             // Use the same native navigation material as Glasmio's search button
                             // while the trailing slot grows into the unfocused search capsule.
                             GlassSurface(
-                                modifier = Modifier.matchParentSize()
-                                    .onGloballyPositioned {
-                                        if (!searchEditing) onSearchBounds(it.boundsInWindow())
-                                    }
-                                    .semantics { contentDescription = searchLabel },
+                                modifier =
+                                    Modifier.matchParentSize()
+                                        .onGloballyPositioned {
+                                            if (!searchEditing) onSearchBounds(it.boundsInWindow())
+                                        }
+                                        .semantics { contentDescription = searchLabel },
                                 backdrop = backdrop,
                                 shape = Capsule(),
                                 style = GlassSurfaceStyle.Navigation,
@@ -200,9 +206,10 @@ internal fun MusicBottomDock(
                                 SfIcon(
                                     SfSymbol.Search,
                                     null,
-                                    modifier = Modifier.align(Alignment.Center).graphicsLayer {
-                                        alpha = 1f - labelAlpha
-                                    },
+                                    modifier =
+                                        Modifier.align(Alignment.Center).graphicsLayer {
+                                            alpha = 1f - labelAlpha
+                                        },
                                     tint = colors.content,
                                     size = CompactBottomControlIconSize,
                                     fontSize = 18.sp,
@@ -216,7 +223,12 @@ internal fun MusicBottomDock(
                                             .graphicsLayer { alpha = labelAlpha },
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        SfIcon(SfSymbol.Search, null, tint = colors.secondaryContent, size = 21.dp)
+                                        SfIcon(
+                                            SfSymbol.Search,
+                                            null,
+                                            tint = colors.secondaryContent,
+                                            size = 21.dp,
+                                        )
                                         Spacer(Modifier.width(8.dp))
                                         Text(
                                             text_search_placeholder,

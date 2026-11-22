@@ -71,8 +71,8 @@ import com.mocharealm.bell.ui.screen.player.composables.QueueCurrentHeaderKey
 import com.mocharealm.bell.ui.screen.player.composables.QueueDragOverlay
 import com.mocharealm.bell.ui.screen.player.composables.QueueDragState
 import com.mocharealm.bell.ui.screen.player.composables.QueueGlassHost
-import com.mocharealm.bell.ui.screen.player.composables.excerptFrom
 import com.mocharealm.bell.ui.screen.player.composables.excerptAtPosition
+import com.mocharealm.bell.ui.screen.player.composables.excerptFrom
 import com.mocharealm.bell.ui.screen.player.composables.lyricExcerptAt
 import com.mocharealm.bell.ui.screen.player.composables.queueCurrentIndex
 import com.mocharealm.bell.ui.screen.player.composables.queueHistoryHeaderOffset
@@ -263,17 +263,21 @@ internal fun PlayerScreen(
             state,
             item,
             share,
-            onShareLyrics = lyric?.takeIf { it.lines.any { row -> row.first.isNotBlank() } }?.let { display ->
-                {
-                    val excerpt = if (display.kind == LyricKind.Unsynced)
-                        lyricExcerptAt(
-                            display.lines.map { it.first },
-                            display.lines.indexOfFirst { it.first.isNotBlank() },
-                        )
-                    else display.timed.lines.excerptAtPosition(position.intValue)
-                    excerpt?.let { openLyricsShare(it, null) }
-                }
-            },
+            onShareLyrics =
+                lyric
+                    ?.takeIf { it.lines.any { row -> row.first.isNotBlank() } }
+                    ?.let { display ->
+                        {
+                            val excerpt =
+                                if (display.kind == LyricKind.Unsynced)
+                                    lyricExcerptAt(
+                                        display.lines.map { it.first },
+                                        display.lines.indexOfFirst { it.first.isNotBlank() },
+                                    )
+                                else display.timed.lines.excerptAtPosition(position.intValue)
+                            excerpt?.let { openLyricsShare(it, null) }
+                        }
+                    },
             leavePlayer = dismiss,
         )
     val translationTracks =
@@ -363,51 +367,56 @@ internal fun PlayerScreen(
                 }
             }
             BoxWithConstraints(
-                Modifier.fillMaxSize().clipToBounds()
+                Modifier.fillMaxSize()
+                    .clipToBounds()
                     .onGloballyPositioned { playerCoordinates = it }
                     .pointerInput(Unit) {
-                    awaitEachGesture {
-                        val first =
-                            awaitFirstDown(
-                                requireUnconsumed = false,
-                                pass = PointerEventPass.Initial,
-                            )
-                        touching = true
-                        pressedOnScreen = playerCoordinates?.takeIf { it.isAttached }
-                            ?.localToScreen(first.position)?.takeIf { it.isFinite }
-                        interaction++
-                        val lyricsHidden =
-                            latestPanel == PlayerPanel.Lyrics && !latestControlsVisible
-                        val lyricsStart = size.height * .108f + 72.dp.toPx()
-                        val watchPull = lyricsHidden && first.position.y >= lyricsStart
-                        var intercept = lyricsHidden && first.position.y >= size.height * .5f
-                        if (intercept) {
-                            first.consume()
-                            revealControls()
-                        }
-                        try {
-                            do {
-                                val event = awaitPointerEvent(PointerEventPass.Initial)
-                                val pointer = event.changes.firstOrNull { it.id == first.id }
-                                if (!intercept && watchPull && pointer != null) {
-                                    val delta = pointer.position - first.position
-                                    if (
-                                        delta.y > viewConfiguration.touchSlop &&
-                                            delta.y > kotlin.math.abs(delta.x)
-                                    ) {
-                                        intercept = true
-                                        revealControls()
+                        awaitEachGesture {
+                            val first =
+                                awaitFirstDown(
+                                    requireUnconsumed = false,
+                                    pass = PointerEventPass.Initial,
+                                )
+                            touching = true
+                            pressedOnScreen =
+                                playerCoordinates
+                                    ?.takeIf { it.isAttached }
+                                    ?.localToScreen(first.position)
+                                    ?.takeIf { it.isFinite }
+                            interaction++
+                            val lyricsHidden =
+                                latestPanel == PlayerPanel.Lyrics && !latestControlsVisible
+                            val lyricsStart = size.height * .108f + 72.dp.toPx()
+                            val watchPull = lyricsHidden && first.position.y >= lyricsStart
+                            var intercept = lyricsHidden && first.position.y >= size.height * .5f
+                            if (intercept) {
+                                first.consume()
+                                revealControls()
+                            }
+                            try {
+                                do {
+                                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                                    val pointer = event.changes.firstOrNull { it.id == first.id }
+                                    if (!intercept && watchPull && pointer != null) {
+                                        val delta = pointer.position - first.position
+                                        if (
+                                            delta.y > viewConfiguration.touchSlop &&
+                                                delta.y > kotlin.math.abs(delta.x)
+                                        ) {
+                                            intercept = true
+                                            revealControls()
+                                        }
                                     }
-                                }
-                                // The wake-up gesture belongs to the player, including its UP.
-                                // A newly revealed slider/button must not act on that same touch.
-                                if (intercept) event.changes.forEach { it.consume() }
-                            } while (event.changes.any { it.pressed })
-                        } finally {
-                            touching = false
+                                    // The wake-up gesture belongs to the player, including its UP.
+                                    // A newly revealed slider/button must not act on that same
+                                    // touch.
+                                    if (intercept) event.changes.forEach { it.consume() }
+                                } while (event.changes.any { it.pressed })
+                            } finally {
+                                touching = false
+                            }
                         }
                     }
-                }
             ) {
                 val width = maxWidth
                 val height = maxHeight
@@ -443,10 +452,16 @@ internal fun PlayerScreen(
                                 player = true,
                                 modifier =
                                     Modifier.graphicsLayer { alpha = motion?.progress ?: 1f }
-                                        .then(if (lyricsShareVisible) Modifier.drawWithContent {
-                                            lyricsMesh.record { this@drawWithContent.drawContent() }
-                                            drawLayer(lyricsMesh)
-                                        } else Modifier),
+                                        .then(
+                                            if (lyricsShareVisible)
+                                                Modifier.drawWithContent {
+                                                    lyricsMesh.record {
+                                                        this@drawWithContent.drawContent()
+                                                    }
+                                                    drawLayer(lyricsMesh)
+                                                }
+                                            else Modifier
+                                        ),
                             )
                             val coverTop = height * .108f
                             val largeSide =
@@ -571,20 +586,45 @@ internal fun PlayerScreen(
                                                     ) {
                                                         itemsIndexed(lyric.lines) { index, row ->
                                                             val (original, translation) = row
-                                                            var rowBounds by remember { mutableStateOf<Rect?>(null) }
+                                                            var rowBounds by remember {
+                                                                mutableStateOf<Rect?>(null)
+                                                            }
                                                             Column(
                                                                 Modifier.fillMaxWidth()
-                                                                    .onGloballyPositioned { coordinates ->
-                                                                        val origin = coordinates.localToScreen(Offset.Zero)
-                                                                        rowBounds = if (origin.isFinite) Rect(origin, coordinates.size.toSize()) else null
+                                                                    .onGloballyPositioned {
+                                                                        coordinates ->
+                                                                        val origin =
+                                                                            coordinates
+                                                                                .localToScreen(
+                                                                                    Offset.Zero
+                                                                                )
+                                                                        rowBounds =
+                                                                            if (origin.isFinite)
+                                                                                Rect(
+                                                                                    origin,
+                                                                                    coordinates.size
+                                                                                        .toSize(),
+                                                                                )
+                                                                            else null
                                                                     }
                                                                     .combinedClickable(
-                                                                        onClick = { revealControls() },
+                                                                        onClick = {
+                                                                            revealControls()
+                                                                        },
                                                                         onLongClick = {
                                                                             lyricExcerptAt(
-                                                                                lyric.lines.map { it.first },
-                                                                                index,
-                                                                            )?.let { openLyricsShare(it, rowBounds) }
+                                                                                    lyric.lines
+                                                                                        .map {
+                                                                                            it.first
+                                                                                        },
+                                                                                    index,
+                                                                                )
+                                                                                ?.let {
+                                                                                    openLyricsShare(
+                                                                                        it,
+                                                                                        rowBounds,
+                                                                                    )
+                                                                                }
                                                                         },
                                                                     )
                                                             ) {
@@ -640,31 +680,95 @@ internal fun PlayerScreen(
                                                             revealControls()
                                                         },
                                                         onLinePressed = { line ->
-                                                            lyric.timed.lines.excerptFrom(line)?.let { excerpt ->
-                                                                val coordinates = timedLyricsCoordinates?.takeIf { it.isAttached }
-                                                                val press = pressedOnScreen
-                                                                val source = if (coordinates == null || press == null) null else {
-                                                                    val start = coordinates.localToScreen(Offset.Zero)
-                                                                    val gutter = with(density) { 16.dp.toPx() }
-                                                                    val textWidth = (coordinates.size.width - 2 * gutter).toInt().coerceAtLeast(1)
-                                                                    val textHeight = lyricTextMeasurer.measure(
-                                                                        excerpt.lines[excerpt.initialIndex],
-                                                                        style = lyricsTypography.normal,
-                                                                        constraints = Constraints(maxWidth = textWidth),
-                                                                    ).size.height + gutter
-                                                                    val top = (press.y - textHeight / 2f).coerceIn(
-                                                                        start.y,
-                                                                        start.y + (coordinates.size.height - textHeight).coerceAtLeast(0f),
-                                                                    )
-                                                                    if (start.isFinite) Rect(start.x + gutter, top, start.x + coordinates.size.width - gutter, top + textHeight)
-                                                                    else null
+                                                            lyric.timed.lines
+                                                                .excerptFrom(line)
+                                                                ?.let { excerpt ->
+                                                                    val coordinates =
+                                                                        timedLyricsCoordinates?.takeIf {
+                                                                            it.isAttached
+                                                                        }
+                                                                    val press = pressedOnScreen
+                                                                    val source =
+                                                                        if (
+                                                                            coordinates == null ||
+                                                                                press == null
+                                                                        )
+                                                                            null
+                                                                        else {
+                                                                            val start =
+                                                                                coordinates
+                                                                                    .localToScreen(
+                                                                                        Offset.Zero
+                                                                                    )
+                                                                            val gutter =
+                                                                                with(density) {
+                                                                                    16.dp.toPx()
+                                                                                }
+                                                                            val textWidth =
+                                                                                (coordinates.size
+                                                                                        .width -
+                                                                                        2 * gutter)
+                                                                                    .toInt()
+                                                                                    .coerceAtLeast(
+                                                                                        1
+                                                                                    )
+                                                                            val textHeight =
+                                                                                lyricTextMeasurer
+                                                                                    .measure(
+                                                                                        excerpt
+                                                                                            .lines[
+                                                                                                excerpt
+                                                                                                    .initialIndex],
+                                                                                        style =
+                                                                                            lyricsTypography
+                                                                                                .normal,
+                                                                                        constraints =
+                                                                                            Constraints(
+                                                                                                maxWidth =
+                                                                                                    textWidth
+                                                                                            ),
+                                                                                    )
+                                                                                    .size
+                                                                                    .height + gutter
+                                                                            val top =
+                                                                                (press.y -
+                                                                                        textHeight /
+                                                                                            2f)
+                                                                                    .coerceIn(
+                                                                                        start.y,
+                                                                                        start.y +
+                                                                                            (coordinates
+                                                                                                    .size
+                                                                                                    .height -
+                                                                                                    textHeight)
+                                                                                                .coerceAtLeast(
+                                                                                                    0f
+                                                                                                ),
+                                                                                    )
+                                                                            if (start.isFinite)
+                                                                                Rect(
+                                                                                    start.x +
+                                                                                        gutter,
+                                                                                    top,
+                                                                                    start.x +
+                                                                                        coordinates
+                                                                                            .size
+                                                                                            .width -
+                                                                                        gutter,
+                                                                                    top +
+                                                                                        textHeight,
+                                                                                )
+                                                                            else null
+                                                                        }
+                                                                    openLyricsShare(excerpt, source)
                                                                 }
-                                                                openLyricsShare(excerpt, source)
-                                                            }
                                                         },
                                                         modifier =
-                                                            Modifier.fillMaxSize().musicPlus()
-                                                                .onGloballyPositioned { timedLyricsCoordinates = it },
+                                                            Modifier.fillMaxSize()
+                                                                .musicPlus()
+                                                                .onGloballyPositioned {
+                                                                    timedLyricsCoordinates = it
+                                                                },
                                                         anchor =
                                                             if (tabletLandscape)
                                                                 LyricsAnchor.Fraction(.25f)

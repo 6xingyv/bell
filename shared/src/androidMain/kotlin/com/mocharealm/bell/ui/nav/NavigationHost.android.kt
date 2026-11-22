@@ -747,12 +747,13 @@ actual fun MusicNavigationHost(
                     GlasmioBackdropProvider(navigationBackdrop) {
                         BottomNavigationContact(
                             backdrop = navigationBackdrop,
-                            modifier = Modifier.glasmioAdaptiveContent()
-                                .statusBarsPadding()
-                                .padding(top = if (topTabs) 64.dp else 4.dp)
-                                .padding(horizontal = 20.dp)
-                                .fillMaxWidth()
-                                .height(48.dp),
+                            modifier =
+                                Modifier.glasmioAdaptiveContent()
+                                    .statusBarsPadding()
+                                    .padding(top = if (topTabs) 64.dp else 4.dp)
+                                    .padding(horizontal = 20.dp)
+                                    .fillMaxWidth()
+                                    .height(48.dp),
                             joinNearbyControls = true,
                         ) {
                             Row(
@@ -771,7 +772,9 @@ actual fun MusicNavigationHost(
                                     cancelLabel = text_cancel,
                                     placeholder = text_search_placeholder,
                                     modifier =
-                                        Modifier.weight(1f).onFocusChanged { searchEditing = it.isFocused },
+                                        Modifier.weight(1f).onFocusChanged {
+                                            searchEditing = it.isFocused
+                                        },
                                     autoFocus = false,
                                     morphProgress = 1f,
                                     enabled = true,
@@ -779,16 +782,21 @@ actual fun MusicNavigationHost(
                                     observeChildPress = true,
                                 )
                                 Box(
-                                    Modifier.widthIn(min = 154.dp, max = 210.dp).height(48.dp)
+                                    Modifier.widthIn(min = 154.dp, max = 210.dp)
+                                        .height(48.dp)
                                         .then(chooserPress.gestureModifier),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     val contact = LocalBottomControlContact.current
-                                    val sharedMaterial = contact?.takeIf { it.surface.value != null }
-                                        ?.materialBackdrop
-                                    val chooserBackdrop = rememberCombinedBackdrop(
-                                        navigationBackdrop, sharedMaterial ?: chooserGlassBackdrop,
-                                    )
+                                    val sharedMaterial =
+                                        contact
+                                            ?.takeIf { it.surface.value != null }
+                                            ?.materialBackdrop
+                                    val chooserBackdrop =
+                                        rememberCombinedBackdrop(
+                                            navigationBackdrop,
+                                            sharedMaterial ?: chooserGlassBackdrop,
+                                        )
                                     GlassSurface(
                                         modifier = Modifier.matchParentSize(),
                                         backdrop = navigationBackdrop,
@@ -803,7 +811,8 @@ actual fun MusicNavigationHost(
                                         ),
                                         currentState.searchScope,
                                         { model.accept(BellIntent.SearchScope(it)) },
-                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                                        modifier =
+                                            Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                                         height = 40.dp,
                                         backdrop = chooserBackdrop,
                                     )
@@ -887,7 +896,8 @@ actual fun MusicPage(
                                         .blur(6.dp * collapse)
                                         .offset(y = if (searchLanding) 0.dp else (-10).dp)
                                         .padding(
-                                            horizontal = (20.dp - horizontalInset).coerceAtLeast(0.dp),
+                                            horizontal =
+                                                (20.dp - horizontalInset).coerceAtLeast(0.dp),
                                             vertical = 6.dp,
                                         ),
                             )
@@ -901,7 +911,9 @@ actual fun MusicPage(
                     onRefresh = onRefresh,
                     modifier = Modifier.fillMaxSize(),
                     indicatorPadding = PaddingValues(top = bodyPadding.calculateTopPadding()),
-                ) { pageList() }
+                ) {
+                    pageList()
+                }
             } else pageList()
         }
     }

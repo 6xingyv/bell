@@ -3,8 +3,8 @@ package com.mocharealm.bell.ui.screen.player.composables
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -45,7 +45,9 @@ internal actual fun LyricsShareModal(
                             Box(Modifier.weight(1f)) { header() }
                             IconButton(onClick = dismiss) {
                                 MusicIcon(
-                                    "xmark", MaterialTheme.colorScheme.onSurface, 20.dp,
+                                    "xmark",
+                                    MaterialTheme.colorScheme.onSurface,
+                                    20.dp,
                                     description = stringResource(Res.string.close),
                                 )
                             }

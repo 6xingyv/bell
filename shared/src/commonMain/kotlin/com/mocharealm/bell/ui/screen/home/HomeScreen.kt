@@ -55,18 +55,25 @@ internal fun HomeScreen(
     val viewModel = rememberScreenViewModel(model) { HomeViewModel(model) }
     val observedState by viewModel.state.collectAsState()
     val screenState = if (state === model.state.value) observedState else viewModel.snapshot(state)
-    val genreShelves = remember(screenState.genres, screenState.albums) {
-        screenState.genres.asSequence()
-            .mapNotNull { genre ->
-                val matching = screenState.albums.asSequence()
-                    .filter { it.type == "MusicAlbum" && it.genres.any { name -> name.equals(genre.name, true) } }
-                    .take(12)
-                    .toList()
-                matching.takeIf { it.isNotEmpty() }?.let { genre to it }
-            }
-            .take(4)
-            .toList()
-    }
+    val genreShelves =
+        remember(screenState.genres, screenState.albums) {
+            screenState.genres
+                .asSequence()
+                .mapNotNull { genre ->
+                    val matching =
+                        screenState.albums
+                            .asSequence()
+                            .filter {
+                                it.type == "MusicAlbum" &&
+                                    it.genres.any { name -> name.equals(genre.name, true) }
+                            }
+                            .take(12)
+                            .toList()
+                    matching.takeIf { it.isNotEmpty() }?.let { genre to it }
+                }
+                .take(4)
+                .toList()
+        }
 
     val recommendationList = rememberLazyListState()
     val mixList = rememberLazyListState()

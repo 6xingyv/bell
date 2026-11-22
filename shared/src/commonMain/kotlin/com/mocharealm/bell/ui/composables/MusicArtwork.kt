@@ -89,12 +89,16 @@ fun MusicArtwork(
         else Modifier
     val artItem =
         when {
-            item?.id?.startsWith("jellify-album:") == true -> remember(item, state.songs) {
-                state.songs.firstOrNull { it.album == item.name }
-            }
-            item?.id?.startsWith("jellify-mix:") == true -> remember(item, state.mixes) {
-                state.mixes.firstOrNull { it.seed.id == item.id.removePrefix("jellify-mix:") }?.seed
-            }
+            item?.id?.startsWith("jellify-album:") == true ->
+                remember(item, state.songs) {
+                    state.songs.firstOrNull { it.album == item.name }
+                }
+            item?.id?.startsWith("jellify-mix:") == true ->
+                remember(item, state.mixes) {
+                    state.mixes
+                        .firstOrNull { it.seed.id == item.id.removePrefix("jellify-mix:") }
+                        ?.seed
+                }
             else -> item
         }
     val ratioHint =
@@ -107,34 +111,41 @@ fun MusicArtwork(
     val artist = artItem?.type == "MusicArtist"
     val initialRatio = ratioHint?.takeIf { it.isFinite() && it > 0f }
     val session = state.session
-    val artworkDescription = remember(item?.name, text_artwork_description) {
-        item?.let { formatBellString(text_artwork_description, it.name) }
-    }
+    val artworkDescription =
+        remember(item?.name, text_artwork_description) {
+            item?.let { formatBellString(text_artwork_description, it.name) }
+        }
     val wantsCrop = artist || contentScale == ContentScale.Crop
     val density = LocalDensity.current
     val shape = remember(radius) { musicShape(radius) }
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
-        val requestWidth = with(density) {
-            val width = if (wantsCrop && initialRatio != null) maxOf(maxWidth, maxHeight * initialRatio)
-            else maxWidth
-            artworkRequestWidth(width.toPx())
-        }
-        val revision = state.mediaRevision
-        var source by remember(model, session, artItem, requestWidth, offline) {
-            mutableStateOf<String?>(null)
-        }
-        LaunchedEffect(model, session, artItem, requestWidth, offline, revision) {
-            source = if (session == null || artItem == null) null else withContext(Dispatchers.IO) {
-                model.artwork(session, artItem, requestWidth, offline)
+        val requestWidth =
+            with(density) {
+                val width =
+                    if (wantsCrop && initialRatio != null) maxOf(maxWidth, maxHeight * initialRatio)
+                    else maxWidth
+                artworkRequestWidth(width.toPx())
             }
+        val revision = state.mediaRevision
+        var source by
+            remember(model, session, artItem, requestWidth, offline) {
+                mutableStateOf<String?>(null)
+            }
+        LaunchedEffect(model, session, artItem, requestWidth, offline, revision) {
+            source =
+                if (session == null || artItem == null) null
+                else
+                    withContext(Dispatchers.IO) {
+                        model.artwork(session, artItem, requestWidth, offline)
+                    }
         }
         var loaded by remember(source) { mutableStateOf(false) }
-        var ratio by remember(artItem?.id, source, initialRatio) {
-            mutableFloatStateOf(initialRatio ?: 1f)
-        }
+        var ratio by
+            remember(artItem?.id, source, initialRatio) {
+                mutableFloatStateOf(initialRatio ?: 1f)
+            }
         val (artWidth, artHeight) =
-            if (wantsCrop) maxWidth to maxHeight
-            else fittedMusicArtwork(maxWidth, maxHeight, ratio)
+            if (wantsCrop) maxWidth to maxHeight else fittedMusicArtwork(maxWidth, maxHeight, ratio)
         Box(
             Modifier.size(artWidth, artHeight)
                 .then(playerArtwork)
@@ -173,16 +184,17 @@ fun MusicArtwork(
     }
 }
 
-private fun artworkRequestWidth(pixels: Float): Int = when {
-    !pixels.isFinite() -> 600
-    pixels <= 128 -> 128
-    pixels <= 256 -> 256
-    pixels <= 384 -> 384
-    pixels <= 600 -> 600
-    pixels <= 900 -> 900
-    pixels <= 1200 -> 1200
-    else -> 1600
-}
+private fun artworkRequestWidth(pixels: Float): Int =
+    when {
+        !pixels.isFinite() -> 600
+        pixels <= 128 -> 128
+        pixels <= 256 -> 256
+        pixels <= 384 -> 384
+        pixels <= 600 -> 600
+        pixels <= 900 -> 900
+        pixels <= 1200 -> 1200
+        else -> 1600
+    }
 
 internal fun fittedMusicArtwork(width: Dp, height: Dp, aspectRatio: Float): Pair<Dp, Dp> {
     val ratio = aspectRatio.takeIf { it.isFinite() && it > 0f } ?: 1f

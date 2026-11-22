@@ -22,7 +22,8 @@ import com.mocharealm.bell.ui.utils.musicBackground
 import com.mocharealm.bell.ui.utils.musicPlus
 import org.jetbrains.compose.resources.stringResource
 
-internal val LocalMusicDownloadProgress = staticCompositionLocalOf<State<Map<String, Float>>?> { null }
+internal val LocalMusicDownloadProgress =
+    staticCompositionLocalOf<State<Map<String, Float>>?> { null }
 
 @Composable
 private fun downloadProgress(model: BellStore, id: String): State<Float?> {

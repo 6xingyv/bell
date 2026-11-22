@@ -218,7 +218,12 @@ actual fun MusicMenu(
                 }
         }
         if (expanded)
-            MusicNativeMenu(expandedActions?.invoke() ?: actions, anchor, LocalBlurBackdrop.current, anchorLabel) {
+            MusicNativeMenu(
+                expandedActions?.invoke() ?: actions,
+                anchor,
+                LocalBlurBackdrop.current,
+                anchorLabel,
+            ) {
                 expanded = false
             }
     }

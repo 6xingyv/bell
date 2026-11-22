@@ -68,16 +68,19 @@ fun MusicText(
         } else color
     val additive = LocalMusicPlayerPlus.current && foreground.alpha < 1f
     val layout = if (additive) remember { mutableStateOf<TextLayoutResult?>(null) } else null
-    val blending = if (layout != null) {
-        val ranges = remember(text) { musicColorGlyphRanges(text) }
-        val colorGlyphs by remember(text, ranges, layout) {
-            derivedStateOf {
-                layout.value?.takeIf { it.layoutInput.text.text == text }
-                    ?.let { musicColorGlyphPath(it, ranges) }
-            }
-        }
-        val plusPaint = rememberMusicPlusPaint()
-        val normalPaint = remember { Paint() }
+    val blending =
+        if (layout != null) {
+            val ranges = remember(text) { musicColorGlyphRanges(text) }
+            val colorGlyphs by
+                remember(text, ranges, layout) {
+                    derivedStateOf {
+                        layout.value
+                            ?.takeIf { it.layoutInput.text.text == text }
+                            ?.let { musicColorGlyphPath(it, ranges) }
+                    }
+                }
+            val plusPaint = rememberMusicPlusPaint()
+            val normalPaint = remember { Paint() }
             Modifier.drawWithContent {
                 drawMusicTextLayers(
                     Rect(0f, 0f, this.size.width, this.size.height),
@@ -88,7 +91,7 @@ fun MusicText(
                     additive = true,
                 )
             }
-    } else Modifier
+        } else Modifier
     Text(
         text,
         modifier.then(blending),
@@ -288,7 +291,10 @@ fun MusicTrackRow(
             .height(.5.dp)
             .then(
                 if (swipeEnabled)
-                    Modifier.musicSwipeDivider(beforeId = item.id, afterId = tracks.getOrNull(index + 1)?.id)
+                    Modifier.musicSwipeDivider(
+                        beforeId = item.id,
+                        afterId = tracks.getOrNull(index + 1)?.id,
+                    )
                 else Modifier
             )
             .musicBackground(primary.copy(alpha = if (dark) .13f else .12f))
