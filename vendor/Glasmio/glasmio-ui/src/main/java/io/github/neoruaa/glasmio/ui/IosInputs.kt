@@ -28,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.Offset
@@ -39,8 +38,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kyant.shapes.Capsule
 import kotlinx.coroutines.flow.first
@@ -57,7 +56,6 @@ fun GlasmioTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
-    onFocusChanged: (Boolean) -> Unit = {},
 ) {
     var owned by remember { mutableStateOf(TextFieldValue(value)) }
     var lastText by remember(value) { mutableStateOf(value) }
@@ -76,7 +74,6 @@ fun GlasmioTextField(
         visualTransformation = visualTransformation,
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
-        onFocusChanged = onFocusChanged,
     )
 }
 
@@ -91,7 +88,6 @@ fun GlasmioTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
-    onFocusChanged: (Boolean) -> Unit = {},
 ) {
     val colors = LocalGlassColors.current
     val fieldTextStyle = IosTypography.body.copy(fontWeight = FontWeight(510))
@@ -106,7 +102,7 @@ fun GlasmioTextField(
         GlasmioEditableTextField(
             value,
             onValueChange,
-            modifier = Modifier.weight(1f).onFocusChanged { onFocusChanged(it.isFocused) },
+            modifier = Modifier.weight(1f),
             enabled = enabled,
             textStyle = fieldTextStyle.copy(color = colors.content),
             cursorBrush = androidx.compose.ui.graphics.SolidColor(colors.accent),
@@ -115,16 +111,16 @@ fun GlasmioTextField(
             keyboardOptions = keyboardOptions,
             keyboardActions = keyboardActions,
             decorationBox = { inner ->
-                if (value.text.isEmpty())
-                    Text(
+                Box(contentAlignment = Alignment.CenterStart) {
+                    if (value.text.isEmpty()) Text(
                         placeholder,
                         style = fieldTextStyle,
                         color = colors.tertiaryContent,
                         maxLines = 1,
-                        softWrap = false,
                         overflow = TextOverflow.Ellipsis,
                     )
-                inner()
+                    inner()
+                }
             },
         )
         trailing?.let { trailingContent ->

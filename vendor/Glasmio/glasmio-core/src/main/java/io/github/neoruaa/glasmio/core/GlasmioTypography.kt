@@ -209,14 +209,14 @@ private fun buildTextStyles(
                 }
                 put(role to variant, source.copy(
                     fontSize = size.toFloat().textUnit(),
-                    lineHeight = maxOf(leading.toFloat(), size * 1.4f).textUnit(),
+                    lineHeight = leading.toFloat().textUnit(),
                     letterSpacing = if (letterSpacing.isUnspecified) role.tracking.textUnit() else letterSpacing,
                     fontWeight = FontWeight(weight),
                     fontStyle = if (italic) FontStyle.Italic else FontStyle.Normal,
                     // Keep first/last-line font extents: a host font can exceed the nominal
                     // design leading. Trimming those bounds could clip glyphs or fallback scripts.
                     lineHeightStyle = LineHeightStyle(
-                        alignment = LineHeightStyle.Alignment.Center,
+                        alignment = LineHeightStyle.Alignment.Proportional,
                         trim = LineHeightStyle.Trim.None,
                         mode = LineHeightStyle.Mode.Fixed,
                     ),

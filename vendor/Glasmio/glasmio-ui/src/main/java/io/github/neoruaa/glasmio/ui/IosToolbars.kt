@@ -1,7 +1,5 @@
 package io.github.neoruaa.glasmio.ui
 
-import androidx.compose.ui.focus.onFocusChanged
-
 import io.github.neoruaa.glasmio.core.*
 import io.github.neoruaa.glasmio.glass.*
 import io.github.neoruaa.glasmio.icons.*
@@ -192,11 +190,10 @@ fun GlasmioTopBar(
     style: GlasmioTopBarStyle = GlasmioTopBarStyle.Default,
     collapseProgress: Float = 1f,
     navigation: (@Composable () -> Unit)? = null,
-    actions: (@Composable RowScope.() -> Unit)? = null,
+    actions: @Composable RowScope.() -> Unit = {},
     navigationStyle: GlasmioToolbarActionStyle = GlasmioToolbarActionStyle.Merged,
     actionsStyle: GlasmioToolbarActionStyle = GlasmioToolbarActionStyle.Merged,
     actionsSeparationProgress: Float? = null,
-    symmetricTitleInsets: Boolean = false,
 ) {
     val progress = collapseProgress.coerceIn(0f, 1f)
     CompositionLocalProvider(
@@ -208,9 +205,9 @@ fun GlasmioTopBar(
             GlasmioTopBarStyle.LargeTitle -> Column(modifier.padding(horizontal = IosPageHorizontalPadding, vertical = 10.dp)) {
                 Row(Modifier.fillMaxWidth().height(54.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.weight(1f)) {
-                        if (navigation != null) GlasmioToolbarActionGroup(style = navigationStyle) { navigation() }
+                        GlasmioToolbarActionGroup(style = navigationStyle) { navigation?.invoke() }
                     }
-                    if (actions != null) GlasmioToolbarActionGroup(
+                    GlasmioToolbarActionGroup(
                         style = actionsStyle,
                         separationProgress = actionsSeparationProgress,
                         content = actions,
@@ -231,7 +228,7 @@ fun GlasmioTopBar(
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Start,
                 )
-                if (actions != null) GlasmioToolbarActionGroup(
+                GlasmioToolbarActionGroup(
                     style = actionsStyle,
                     separationProgress = actionsSeparationProgress,
                     content = actions,
@@ -241,12 +238,12 @@ fun GlasmioTopBar(
                 var leadingWidth by remember { mutableIntStateOf(0) }
                 var trailingWidth by remember { mutableIntStateOf(0) }
                 val density = LocalDensity.current
-                val leadingPad = with(density) { if (navigation == null) 0.dp else leadingWidth.toDp() }
-                val trailingPad = with(density) { if (actions == null) 0.dp else trailingWidth.toDp() }
+                val leadingPad = with(density) { leadingWidth.toDp() }
+                val trailingPad = with(density) { trailingWidth.toDp() }
                 val leadingTitlePadding = leadingPad +
-                    if (navigation != null && leadingWidth > 0) IosTopToolbarActionGap else 0.dp
+                    if (leadingWidth > 0) IosTopToolbarActionGap else 0.dp
                 val trailingTitlePadding = trailingPad +
-                    if (actions != null && trailingWidth > 0) IosTopToolbarActionGap else 0.dp
+                    if (trailingWidth > 0) IosTopToolbarActionGap else 0.dp
                 val startsAtLeading = style == GlasmioTopBarStyle.TwoLineLeading
                 val titleStyle = if (subtitle == null) IosTypography.headline
                     else IosTypography.subheadline.copy(fontWeight = FontWeight.SemiBold)
@@ -272,13 +269,13 @@ fun GlasmioTopBar(
                     val titleSqueezed = !startsAtLeading && !fitsCentered(titleWidth)
                     val subtitleSqueezed = !startsAtLeading && !fitsCentered(subtitleWidth)
                     val safeModifier = Modifier.fillMaxWidth().padding(
-                        start = if (symmetricTitleInsets) maxOf(leadingTitlePadding, trailingTitlePadding) else leadingTitlePadding,
-                        end = if (symmetricTitleInsets) maxOf(leadingTitlePadding, trailingTitlePadding) else trailingTitlePadding,
+                        start = leadingTitlePadding,
+                        end = trailingTitlePadding,
                     )
-                    if (navigation != null) GlasmioToolbarActionGroup(
+                    GlasmioToolbarActionGroup(
                         Modifier.align(Alignment.CenterStart).onSizeChanged { leadingWidth = it.width },
                         style = navigationStyle,
-                    ) { navigation() }
+                    ) { navigation?.invoke() }
                     Column(
                         Modifier
                             .align(if (startsAtLeading) Alignment.CenterStart else Alignment.Center)
@@ -299,7 +296,7 @@ fun GlasmioTopBar(
                             modifier = if (titleSqueezed) safeModifier else Modifier.fillMaxWidth(),
                             textAlign = when {
                                 startsAtLeading -> TextAlign.Start
-                                titleSqueezed -> if (symmetricTitleInsets) TextAlign.Center else TextAlign.End
+                                titleSqueezed -> TextAlign.End
                                 else -> TextAlign.Center
                             },
                         )
@@ -317,13 +314,13 @@ fun GlasmioTopBar(
                                 },
                                 textAlign = when {
                                     startsAtLeading -> TextAlign.Start
-                                    subtitleSqueezed -> if (symmetricTitleInsets) TextAlign.Center else TextAlign.End
+                                    subtitleSqueezed -> TextAlign.End
                                     else -> TextAlign.Center
                                 },
                             )
                         }
                     }
-                    if (actions != null) GlasmioToolbarActionGroup(
+                    GlasmioToolbarActionGroup(
                         Modifier.align(Alignment.CenterEnd).onSizeChanged { trailingWidth = it.width },
                         style = actionsStyle,
                         separationProgress = actionsSeparationProgress,
@@ -342,14 +339,13 @@ fun GlasmioSheetTopToolbar(
     title: String,
     modifier: Modifier = Modifier,
     navigation: (@Composable () -> Unit)? = null,
-    actions: (@Composable RowScope.() -> Unit)? = null,
+    actions: @Composable RowScope.() -> Unit = {},
 ) {
     GlasmioTopBar(
         title = title,
         modifier = modifier.offset(y = (-5).dp),
         navigation = navigation,
         actions = actions,
-        symmetricTitleInsets = true,
     )
 }
 
@@ -425,17 +421,13 @@ fun GlasmioSearchToolbar(
     morphProgress: Float = 1f,
     collapsedContent: (@Composable BoxScope.() -> Unit)? = null,
     enabled: Boolean = true,
-    showCancel: Boolean = true,
-    trailingContent: (@Composable () -> Unit)? = null,
-    onFieldFocusChanged: (Boolean) -> Unit = {},
-    onSurfaceClick: (() -> Unit)? = null,
 ) {
     val colors = LocalGlassColors.current
     val backdrop = LocalGlassBackdrop.current
     val keyboard = LocalSoftwareKeyboardController.current
     val progress = morphProgress.coerceIn(0f, 1f)
     val contentReveal = ((progress - 0.25f) / 0.45f).coerceIn(0f, 1f)
-    val cancelReveal = if (showCancel) ((progress - 0.35f) / 0.45f).coerceIn(0f, 1f) else 0f
+    val cancelReveal = ((progress - 0.35f) / 0.45f).coerceIn(0f, 1f)
     Row(
         modifier.height(48.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -445,7 +437,6 @@ fun GlasmioSearchToolbar(
             backdrop = backdrop,
             shape = Capsule(),
             style = style,
-            onClick = onSurfaceClick,
         ) {
             Row(
                 Modifier.fillMaxSize().padding(horizontal = 12.dp).graphicsLayer {
@@ -460,7 +451,7 @@ fun GlasmioSearchToolbar(
                         value = query,
                         onValueChange = onQueryChange,
                         enabled = enabled,
-                        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester).onFocusChanged { onFieldFocusChanged(it.isFocused) },
+                        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
                         singleLine = true,
                         textStyle = IosTypography.body.copy(color = colors.content),
                         cursorBrush = androidx.compose.ui.graphics.SolidColor(colors.accent),
@@ -468,14 +459,7 @@ fun GlasmioSearchToolbar(
                         keyboardActions = KeyboardActions(onSearch = { onSearch(query.text) }),
                         decorationBox = { inner ->
                             if (query.text.isEmpty()) {
-                                Text(
-                                    placeholder,
-                                    style = IosTypography.body,
-                                    color = colors.tertiaryContent,
-                                    maxLines = 1,
-                                    softWrap = false,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
+                                Text(placeholder, style = IosTypography.body, color = colors.tertiaryContent)
                             }
                             inner()
                         },
@@ -490,7 +474,6 @@ fun GlasmioSearchToolbar(
                         SfIcon("xmark.circle", null, size = 18.dp, tint = colors.secondaryContent)
                     }
                 }
-                trailingContent?.invoke()
             }
             if (collapsedContent != null && progress < 0.3f) {
                 Box(Modifier.fillMaxSize().graphicsLayer {

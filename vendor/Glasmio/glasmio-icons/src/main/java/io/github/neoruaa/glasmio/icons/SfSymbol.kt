@@ -38,10 +38,6 @@ enum class SfSymbol(
 ) {
     House("house", 0x10039E),
     HouseFilled("house.fill", 0x10039F),
-    MusicHouse("music.house", 0x1004BC),
-    MusicHouseFilled("music.house.fill", 0x1004BD),
-    SquareStack("square.stack", 0x10040B),
-    SquareStackFilled("square.stack.fill", 0x10040C),
     Layers("square.3.layers.3d", 0x100BF0),
     InfoCircle("info.circle", 0x100174),
     Sparkles("sparkles", 0x1001BF),
@@ -187,6 +183,7 @@ fun SfIcon(
         mirrored = mirrored && layoutDirection == LayoutDirection.Rtl,
         features = fontFeatureSettings,
         inkHeight = inkHeight,
+        useWeightAxis = systemName == "progress.indicator",
     )
 }
 
@@ -210,6 +207,7 @@ private fun SfIconGlyph(
     mirrored: Boolean,
     features: String,
     inkHeight: Dp?,
+    useWeightAxis: Boolean = false,
 ) {
     val density = LocalDensity.current
     val baseTypeface = LocalGlasmioSymbolTypeface.current ?: return
@@ -220,9 +218,17 @@ private fun SfIconGlyph(
     val requestedSize = with(density) { fontSize.toPx() }
     val iconSize = with(density) { size.toPx() }
     val requestedInkHeight = with(density) { inkHeight?.toPx() }
-    val drawCache = remember(typeface, glyph, requestedSize, iconSize, fitToSlot, features, requestedInkHeight) {
+    val drawCache = remember(
+        baseTypeface, typeface, weight, glyph, requestedSize, iconSize, fitToSlot,
+        features, requestedInkHeight, useWeightAxis,
+    ) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             this.typeface = typeface
+            if (useWeightAxis) {
+                // Use the actual variable outline for the refresh indicator on single-face providers.
+                this.typeface = baseTypeface
+                if (!setFontVariationSettings("'wght' ${weight.weight}")) this.typeface = typeface
+            }
             textSize = requestedSize
             textAlign = Paint.Align.LEFT
             fontFeatureSettings = features
