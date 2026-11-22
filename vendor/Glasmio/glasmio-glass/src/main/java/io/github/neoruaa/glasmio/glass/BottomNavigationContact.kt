@@ -28,7 +28,9 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isFinite
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
@@ -41,6 +43,8 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.github.neoruaa.glasmio.glass.render.Backdrop
 import io.github.neoruaa.glasmio.glass.render.backdrops.LayerBackdrop
@@ -64,6 +68,7 @@ fun BottomNavigationContact(
     backdrop: Backdrop,
     modifier: Modifier = Modifier,
     mergedProgress: State<Float>? = null,
+    joinNearbyControls: Boolean = false,
     content: @Composable RowScope.() -> Unit,
 ) {
     val density = LocalDensity.current
@@ -78,6 +83,7 @@ fun BottomNavigationContact(
         }
     }
     contact.mergedProgress = mergedProgress
+    contact.joinNearbyControls = joinNearbyControls
     val materialBackdrop = rememberLayerBackdrop()
     val neighborContentLayer = rememberGraphicsLayer()
     val drawNeighborContent: ContentDrawScope.() -> Unit = remember(contact, neighborContentLayer, renderedLensTransform) {
@@ -322,7 +328,7 @@ class BottomControlContactMember(
     private var bounds: Rect? by mutableStateOf(null)
 
     val connected: Boolean get() = contact.connected.value
-    val sharesSurface: Boolean get() = contact.hasSurface.value
+    val sharesSurface: Boolean get() = contact.ownsSurface(this)
 
     fun capsule(): LiquidContactCapsule? = if (!active.value()) null else bounds?.let {
         // A resizing source can advance before its global layout registration. Keep
@@ -364,7 +370,23 @@ class BottomControlContactMember(
 data class BottomContactSurface(
     val bounds: Rect,
     val shape: Shape,
+    internal val participants: List<BottomControlContactMember> = emptyList(),
+    internal val union: NavigationContactUnion? = null,
 )
+
+data class NavigationContactUnion internal constructor(
+    internal val capsules: List<LiquidContactCapsule>,
+    internal val smoothness: Float,
+) {
+    internal fun shape(): Shape? {
+        val field = NavigationNativeUnion.create(capsules, smoothness) ?: return null
+        val clip = object : Shape {
+            override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline =
+                Outline.Generic(field.path)
+        }
+        return NavigationGlassUnionShape(clip, capsules, smoothness, capsules.minOf { it.size.minDimension })
+    }
+}
 
 data class BottomContactLensTransform(val scale: Offset, val pivot: Offset) {
     fun point(value: Offset) = Offset(
@@ -396,6 +418,7 @@ class BottomControlContact(
     internal var maximumRefractionHeight: Float = 0f
     internal var nativeSmoothness: Float? = null
     internal var mergedProgress: State<Float>? by mutableStateOf(null)
+    internal var joinNearbyControls: Boolean by mutableStateOf(false)
     private var cachedFirst: LiquidContactCapsule? = null
     private var cachedSecond: LiquidContactCapsule? = null
     private var cachedRefractionBand = Float.NaN
@@ -406,9 +429,11 @@ class BottomControlContact(
 
     val surface = derivedStateOf(referentialEqualityPolicy()) { createSurface() }
     // Composition selects a material owner; live geometry stays in layout and drawing.
-    internal val hasSurface = derivedStateOf(structuralEqualityPolicy()) { surface.value != null }
+    internal fun ownsSurface(member: BottomControlContactMember): Boolean =
+        surface.value?.participants?.contains(member) == true
     val connected = derivedStateOf(structuralEqualityPolicy()) {
-        (surface.value?.shape as? LiquidContactShape)?.isConnected == true
+        val current = surface.value
+        current?.union != null || (current?.shape as? LiquidContactShape)?.isConnected == true
     }
     val lensTransform = derivedStateOf(structuralEqualityPolicy()) { members.firstNotNullOfOrNull { it.lensTransform() } }
     val lensSurface = derivedStateOf {
@@ -419,24 +444,71 @@ class BottomControlContact(
             floor(transformedBounds.left), floor(transformedBounds.top),
             ceil(transformedBounds.right), ceil(transformedBounds.bottom),
         )
-        BottomContactSurface(bounds, (source.shape as LiquidContactShape).withOutlineTransform(
-            scale = transform.scale,
-            translation = transformedBounds.topLeft - bounds.topLeft,
-        ))
+        val translation = transformedBounds.topLeft - bounds.topLeft
+        val shape = when (val outline = source.shape) {
+            is LiquidContactShape -> outline.withOutlineTransform(transform.scale, translation)
+            else -> source.union?.let { union ->
+                val scale = transform.scale
+                fun map(point: Offset) = Offset(point.x * scale.x, point.y * scale.y) + translation
+                NavigationContactUnion(
+                    union.capsules.map { it.copy(bounds = Rect(map(it.bounds.topLeft), map(it.bounds.bottomRight))) },
+                    union.smoothness * minOf(scale.x, scale.y),
+                ).shape()
+            } ?: return@derivedStateOf null
+        }
+        BottomContactSurface(bounds, shape)
     }
 
     private fun createSurface(): BottomContactSurface? {
-        var first: LiquidContactCapsule? = null
-        var second: LiquidContactCapsule? = null
-        val progress = mergedProgress?.value?.coerceIn(0f, 1f)
-        for (member in members) {
-            val capsule = member.capsule() ?: continue
-            if (first == null) first = capsule
-            else if (second == null) second = capsule
-            else return null
+        val measured = members.mapNotNull { member ->
+            member.capsule()?.takeIf {
+                it.size.width.isFinite() && it.size.height.isFinite() &&
+                    it.size.width > 0f && it.size.height > 0f && !it.bounds.isEmpty &&
+                    it.bounds.topLeft.isFinite && it.bounds.bottomRight.isFinite
+            }?.let { member to it }
         }
-        val firstCapsule = first ?: return null
-        val secondCapsule = second
+        val contacts = if (joinNearbyControls) {
+            fun near(a: Rect, b: Rect): Boolean {
+                val dx = maxOf(0f, a.left - b.right, b.left - a.right)
+                val dy = maxOf(0f, a.top - b.bottom, b.top - a.bottom)
+                return dx * dx + dy * dy <= contactDistance * contactDistance
+            }
+            val joined = mutableSetOf<Int>()
+            for (i in measured.indices) {
+                val j = (i + 1 until measured.size).firstOrNull { near(measured[i].second.bounds, measured[it].second.bounds) }
+                if (j != null) {
+                    joined.add(i)
+                    joined.add(j)
+                    break
+                }
+            }
+            if (joined.isEmpty()) return null
+            while (true) {
+                val next = measured.indices.firstOrNull { candidate ->
+                    candidate !in joined && joined.any { near(measured[candidate].second.bounds, measured[it].second.bounds) }
+                } ?: break
+                joined.add(next)
+            }
+            measured.filterIndexed { index, _ -> index in joined }.sortedBy { it.second.bounds.center.x }
+        } else measured
+        if (contacts.size !in 1..16) return null
+        val participants = contacts.map { it.first }
+        if (contacts.size > 2) {
+            if (!joinNearbyControls) return null
+            val capsules = contacts.map { it.second }
+            val bounds = Rect(floor(capsules.minOf { it.bounds.left }), floor(capsules.minOf { it.bounds.top }),
+                ceil(capsules.maxOf { it.bounds.right }), ceil(capsules.maxOf { it.bounds.bottom }))
+            val union = NavigationContactUnion(
+                capsules.map { it.copy(bounds = it.bounds.translate(-bounds.topLeft)) },
+                nativeSmoothness ?: contactDistance,
+            )
+            cachedSurface?.takeIf { it.bounds == bounds && it.union == union && it.participants == participants }?.let { return it }
+            val shape = union.shape() ?: return null
+            return BottomContactSurface(bounds, shape, participants, union).also { cachedSurface = it }
+        }
+        val progress = mergedProgress?.value?.coerceIn(0f, 1f)
+        val firstCapsule = contacts.first().second
+        val secondCapsule = contacts.getOrNull(1)?.second
         // The merged source has one contour. Its auxiliary gains contact curvature
         // continuously in the same morph transaction, without a separate delay.
         val nativeSmoothness = this.nativeSmoothness?.let { if (secondCapsule == null) it else it * (progress ?: 1f) }
@@ -474,8 +546,8 @@ class BottomControlContact(
             cachedNativeSmoothness = nativeSmoothness
             cachedContactShape = it
         } ?: return null
-        return cachedSurface?.takeIf { it.bounds == bounds && it.shape === shape }
-            ?: BottomContactSurface(bounds, shape).also { cachedSurface = it }
+        return cachedSurface?.takeIf { it.bounds == bounds && it.shape === shape && it.participants == participants }
+            ?: BottomContactSurface(bounds, shape, participants).also { cachedSurface = it }
     }
 
     fun bindSources(material: LayerBackdrop, neighbor: LayerBackdrop, recordingModifier: Modifier) {
@@ -513,7 +585,9 @@ class BottomControlContact(
     fun lensContactDirection(member: BottomControlContactMember): Float {
         if (!connected.value) return 0f
         val navigation = member.capsule()?.bounds ?: return 0f
-        val neighbor = members.firstOrNull { it !== member }?.capsule()?.bounds ?: return 0f
+        val neighbor = members.asSequence().filter { it !== member }.mapNotNull { it.capsule()?.bounds }
+            .filter { minOf(it.bottom, navigation.bottom) > maxOf(it.top, navigation.top) }
+            .minByOrNull { kotlin.math.abs(it.center.x - navigation.center.x) } ?: return 0f
         val direction = if (neighbor.center.x > navigation.center.x) 1f else -1f
         val gap = if (direction > 0f) neighbor.left - navigation.right else navigation.left - neighbor.right
         val proximity = ((contactDistance - gap) / contactDistance).coerceIn(0f, 1f)

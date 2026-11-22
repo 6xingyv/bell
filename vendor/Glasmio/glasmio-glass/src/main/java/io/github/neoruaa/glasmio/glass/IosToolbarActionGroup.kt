@@ -486,6 +486,24 @@ fun GlasmioToolbarActionHost(
             val press = remember(group, run) {
                 derivedStateOf { run.maxOfOrNull { it.highlight.pressProgress } ?: 0f }
             }
+            var contactMember: BottomControlContactMember? = null
+            if (navigationMaterial && LocalBottomControlContact.current != null) {
+                val active = LocalBottomControlContactMemberActive.current
+                CompositionLocalProvider(LocalBottomControlContactMemberActive provides {
+                    active() && !group.isMenuSourceHidden(run)
+                }) {
+                    contactMember = rememberBottomControlContactMember(
+                        visualBounds = {
+                            val bounds = group.bounds(run)
+                            val transform = group.pressTransform(run.first())
+                            Rect(transform.map(bounds.topLeft), transform.map(bounds.bottomRight))
+                                .translate(-bounds.topLeft)
+                        },
+                        materialPressProgress = { press.value },
+                        highlight = { group.sampledPressHighlight(run)?.highlight ?: GlassPressHighlight() },
+                    )
+                }
+            }
             val background = remember(backdrop, shape, colors, appearance, innerShadows, material, run, materialDark, darkFraction) {
                 Modifier.navigationGlassBackgroundResolved(
                     backdrop = backdrop,
@@ -519,7 +537,8 @@ fun GlasmioToolbarActionHost(
                 layout(constraints.maxWidth, constraints.maxHeight) {
                     placeable.place(bounds.left.roundToInt(), bounds.top.roundToInt())
                 }
-            }.then(background))
+            }.onGloballyPositioned { contactMember?.updateCoordinates(it) }
+                .then(if (contactMember?.sharesSurface == true) Modifier else background))
         } }
         ProvideGlassMaterialContext(materialContext) {
             CompositionLocalProvider(LocalIosToolbarActionGroup provides group) {
@@ -897,9 +916,7 @@ class ToolbarActionGroup(
     }
 
     fun shape(run: List<ToolbarActionMember>, separation: Float): Shape {
-        if (hasPresentationBounds && separation == 0f) {
-            return if (run.size == 1) CircleShape else ToolbarContinuousShape
-        }
+        if (hasPresentationBounds && separation == 0f && run.size == 1) return CircleShape
         val origin = bounds(run).topLeft
         val individualSeparation = run.any { (it.separation.value?.invoke() ?: 0f) != 0f }
         return ToolbarActionShape(listOf(run.map { member ->
