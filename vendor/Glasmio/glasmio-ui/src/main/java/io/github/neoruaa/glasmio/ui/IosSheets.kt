@@ -198,6 +198,7 @@ fun GlasmioBottomSheet(
     topBar: (@Composable () -> Unit)? = null,
     topBarBlurProgress: Float = 0f,
     contentBackground: (@Composable BoxScope.() -> Unit)? = null,
+    windowOverlay: (@Composable BoxScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) = GlasmioBottomSheet(
     onDismissRequest = onDismissRequest,
@@ -217,6 +218,7 @@ fun GlasmioBottomSheet(
     topBarBlurProgress = topBarBlurProgress,
     contentBackground = contentBackground,
     edgeAttachedInCompactHeight = false,
+    windowOverlay = windowOverlay,
     content = content,
 )
 
@@ -243,6 +245,7 @@ fun GlasmioBottomSheet(
     topBarBlurProgress: Float = 0f,
     contentBackground: (@Composable BoxScope.() -> Unit)? = null,
     edgeAttachedInCompactHeight: Boolean,
+    windowOverlay: (@Composable BoxScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -605,6 +608,7 @@ fun GlasmioBottomSheet(
                         layout(child.width, child.height) { child.place(0, 0) }
                     }
                 }
+                if (windowOverlay != null) Box(Modifier.matchParentSize(), content = windowOverlay)
                 }
             }
         }

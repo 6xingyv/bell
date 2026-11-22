@@ -187,4 +187,9 @@
     <string name="credits_production">Production &amp; engineering</string>
     <string name="loading_credits">Loading credits…</string>
     <string name="view_lyrics">View lyrics</string>
+    <string name="lyrics_character_count">%1$d of %2$d characters</string>
+    <plurals name="lyrics_lines_selected">
+        <item quantity="one">%1$d line selected</item>
+        <item quantity="other">%1$d lines selected</item>
+    </plurals>
 </resources>

@@ -177,4 +177,8 @@
     <string name="credits_production">制作和工程</string>
     <string name="loading_credits">正在载入署名信息…</string>
     <string name="view_lyrics">查看歌词</string>
+    <string name="lyrics_character_count">%1$d / %2$d 个字符</string>
+    <plurals name="lyrics_lines_selected">
+        <item quantity="other">已选 %1$d 行</item>
+    </plurals>
 </resources>

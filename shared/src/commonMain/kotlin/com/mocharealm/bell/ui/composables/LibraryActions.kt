@@ -24,7 +24,7 @@ fun songMenu(
     state: BellState,
     item: Item,
     share: (String) -> Unit,
-    lyrics: String = "",
+    onShareLyrics: (() -> Unit)? = null,
     leavePlayer: () -> Unit = {},
     offlineOnly: Boolean = false,
 ): List<MusicMenuAction> = buildList {
@@ -87,9 +87,9 @@ fun songMenu(
         MusicMenuAction(
             strings[Res.string.share_lyrics],
             "shareLyrics",
-            enabled = lyrics.isNotBlank(),
+            enabled = onShareLyrics != null,
         ) {
-            share(lyrics)
+            onShareLyrics?.invoke()
         }
     )
     if (item.id in state.downloaded)
