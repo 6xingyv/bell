@@ -949,9 +949,10 @@ class BellStore(
     }
 
     fun artwork(item: Item, width: Int = 500, offlineOnly: Boolean = false): String? =
-        state.value.session?.let {
-            media.image(it, item) ?: if (offlineOnly) null else repository.image(it, item, width)
-        }
+        state.value.session?.let { artwork(it, item, width, offlineOnly) }
+
+    internal fun artwork(session: Session, item: Item, width: Int, offlineOnly: Boolean): String? =
+        media.image(session, item) ?: if (offlineOnly) null else repository.image(session, item, width)
 
     private fun download(item: Item, tracks: List<Item> = emptyList()) {
         if (downloadJobs[item.id]?.isActive == true) return

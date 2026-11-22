@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.style.*
 import androidx.compose.ui.unit.*
@@ -88,58 +89,99 @@ fun MusicArtwork(
         else Modifier
     val artItem =
         when {
-            item?.id?.startsWith("jellify-album:") == true ->
+            item?.id?.startsWith("jellify-album:") == true -> remember(item, state.songs) {
                 state.songs.firstOrNull { it.album == item.name }
-            item?.id?.startsWith("jellify-mix:") == true ->
+            }
+            item?.id?.startsWith("jellify-mix:") == true -> remember(item, state.mixes) {
                 state.mixes.firstOrNull { it.seed.id == item.id.removePrefix("jellify-mix:") }?.seed
+            }
             else -> item
         }
-    val source =
-        state.session?.let { s -> artItem?.let { model.artwork(it, offlineOnly = offline) } }
     val ratioHint =
         artItem?.primaryImageAspectRatio
-            ?: state.albums.firstOrNull { it.id == artItem?.albumId }?.primaryImageAspectRatio
+            ?: artItem?.albumId?.let { albumId ->
+                remember(albumId, state.albums) {
+                    state.albums.firstOrNull { it.id == albumId }?.primaryImageAspectRatio
+                }
+            }
     val artist = artItem?.type == "MusicArtist"
-    var ratio by
-        remember(source, ratioHint) {
-            mutableFloatStateOf(ratioHint?.takeIf { it.isFinite() && it > 0f } ?: 1f)
-        }
+    val initialRatio = ratioHint?.takeIf { it.isFinite() && it > 0f }
+    val session = state.session
+    val artworkDescription = remember(item?.name, text_artwork_description) {
+        item?.let { formatBellString(text_artwork_description, it.name) }
+    }
+    val wantsCrop = artist || contentScale == ContentScale.Crop
+    val density = LocalDensity.current
+    val shape = remember(radius) { musicShape(radius) }
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
+        val requestWidth = with(density) {
+            val width = if (wantsCrop && initialRatio != null) maxOf(maxWidth, maxHeight * initialRatio)
+            else maxWidth
+            artworkRequestWidth(width.toPx())
+        }
+        val revision = state.mediaRevision
+        var source by remember(model, session, artItem, requestWidth, offline) {
+            mutableStateOf<String?>(null)
+        }
+        LaunchedEffect(model, session, artItem, requestWidth, offline, revision) {
+            source = if (session == null || artItem == null) null else withContext(Dispatchers.IO) {
+                model.artwork(session, artItem, requestWidth, offline)
+            }
+        }
+        var loaded by remember(source) { mutableStateOf(false) }
+        var ratio by remember(artItem?.id, source, initialRatio) {
+            mutableFloatStateOf(initialRatio ?: 1f)
+        }
         val (artWidth, artHeight) =
-            if (artist || contentScale == ContentScale.Crop) maxWidth to maxHeight
+            if (wantsCrop) maxWidth to maxHeight
             else fittedMusicArtwork(maxWidth, maxHeight, ratio)
         Box(
             Modifier.size(artWidth, artHeight)
                 .then(playerArtwork)
                 .then(musicSharedArtwork(sharedKey.takeIf { role == null }))
-                .shadow(shadowElevation, musicShape(radius), clip = false)
-                .clip(musicShape(radius))
+                .shadow(shadowElevation, shape, clip = false)
+                .clip(shape)
                 .background(if (dark) Color.White.copy(alpha = .12f) else Color(0xFFEEEEEF))
                 .border(
                     .5.dp,
                     if (dark) Color.White.copy(alpha = .12f) else Color.Black.copy(alpha = .05f),
-                    musicShape(radius),
+                    shape,
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            MusicIcon(
-                if (artist) "music.microphone" else "note",
-                if (dark) Color.White.copy(alpha = .55f) else Color(0xFFB6B6BA),
-                minOf(artWidth, artHeight) * .38f,
-            )
+            if (!loaded) {
+                MusicIcon(
+                    if (artist) "music.microphone" else "note",
+                    if (dark) Color.White.copy(alpha = .55f) else Color(0xFFB6B6BA),
+                    minOf(artWidth, artHeight) * .38f,
+                )
+            }
             AsyncImage(
                 source,
-                item?.let { formatBellString(text_artwork_description, it.name) },
+                artworkDescription,
                 Modifier.fillMaxSize(),
                 contentScale = if (artist) ContentScale.Crop else contentScale,
                 onSuccess = { result ->
+                    loaded = true
                     val image = result.result.image
-                    if (!artist && image.width > 0 && image.height > 0)
+                    if (!wantsCrop && initialRatio == null && image.width > 0 && image.height > 0)
                         ratio = image.width.toFloat() / image.height
                 },
+                onError = { loaded = false },
             )
         }
     }
+}
+
+private fun artworkRequestWidth(pixels: Float): Int = when {
+    !pixels.isFinite() -> 600
+    pixels <= 128 -> 128
+    pixels <= 256 -> 256
+    pixels <= 384 -> 384
+    pixels <= 600 -> 600
+    pixels <= 900 -> 900
+    pixels <= 1200 -> 1200
+    else -> 1600
 }
 
 internal fun fittedMusicArtwork(width: Dp, height: Dp, aspectRatio: Float): Pair<Dp, Dp> {
