@@ -73,6 +73,7 @@ android {
     lint {
         abortOnError = true
         checkReleaseBuilds = true
+        warning += "MissingTranslation"
     }
 
     signingConfigs {
