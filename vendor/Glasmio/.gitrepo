@@ -7,6 +7,6 @@
 	remote = https://github.com/6xingyv/Glasmio.git
 	branch = main
 	commit = 159e8a597bb0fa3dfbe045ceb8c2cbb1ab4043f8
-	parent = 99966269ae7cb2041a06b060fc0ccf2bebe4d91f
+	parent = 
 	method = merge
 	cmdver = 0.4.9
