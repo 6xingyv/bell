@@ -28,6 +28,8 @@ expect fun MusicPage(
     largeTitle: Boolean = true,
     horizontalInset: Dp = 20.dp,
     underHeader: Boolean = false,
+    refreshing: Boolean = false,
+    onRefresh: (() -> Unit)? = null,
     content: LazyListScope.() -> Unit,
 )
 

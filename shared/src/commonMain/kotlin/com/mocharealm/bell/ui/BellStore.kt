@@ -44,6 +44,7 @@ class BellStore(
         when (intent) {
             is BellIntent.HomeVisibility -> homeVisibility(intent.visible)
             BellIntent.RefreshHome -> requestLibraryReload(false)
+            BellIntent.PullToRefreshHome -> pullToRefreshHome()
             BellIntent.LoadListeningGroups -> action { listening.refreshGroups() }
             is BellIntent.CreateListeningGroup ->
                 action {
@@ -743,19 +744,26 @@ class BellStore(
     private var libraryReloadJob: Job? = null
     private var libraryDirty = false
     private var homeVisible = false
-    private var homeRefreshJob: Job? = null
 
     private fun homeVisibility(visible: Boolean) {
         if (homeVisible == visible) return
         homeVisible = visible
-        homeRefreshJob?.cancel()
-        if (visible) {
-            requestLibraryReload(false)
-            homeRefreshJob = scope.launch {
-                while (isActive) {
-                    delay(60_000)
-                    requestLibraryReload(true)
-                }
+        if (visible) requestLibraryReload(false)
+    }
+
+    private fun pullToRefreshHome() {
+        val session = state.value.session ?: return
+        if (state.value.refreshingHome) return
+        mutable.update { it.copy(refreshingHome = true, error = null) }
+        scope.launch {
+            try {
+                loadLibrary(session)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                mutable.update { if (it.session == session) it.copy(error = errorMapper(e)) else it }
+            } finally {
+                mutable.update { if (it.session == session) it.copy(refreshingHome = false) else it }
             }
         }
     }

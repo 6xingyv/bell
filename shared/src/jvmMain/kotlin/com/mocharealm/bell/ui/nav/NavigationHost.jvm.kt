@@ -59,39 +59,50 @@ actual fun MusicNavigationHost(
 }
 
 @Composable
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 actual fun MusicPage(
     title: String,
     largeTitle: Boolean,
     horizontalInset: Dp,
     underHeader: Boolean,
+    refreshing: Boolean,
+    onRefresh: (() -> Unit)?,
     content: LazyListScope.() -> Unit,
 ) {
-    LazyColumn(
-        Modifier.fillMaxSize(),
-        contentPadding =
-            PaddingValues(
-                start = horizontalInset,
-                end = horizontalInset,
-                top = if (underHeader) 0.dp else 40.dp,
-                bottom = 96.dp,
-            ),
-    ) {
-        if (largeTitle)
-            item {
-                MusicText(
-                    title,
-                    34,
-                    if (LocalMusicDark.current) Color.White else Color.Black,
-                    androidx.compose.ui.text.font.FontWeight.Bold,
-                    modifier =
-                        Modifier.padding(
-                            horizontal = (20.dp - horizontalInset).coerceAtLeast(0.dp)
-                        ),
-                )
-                Spacer(Modifier.height(20.dp))
-            }
-        content()
+    val pageList: @Composable () -> Unit = {
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            contentPadding =
+                PaddingValues(
+                    start = horizontalInset,
+                    end = horizontalInset,
+                    top = if (underHeader) 0.dp else 40.dp,
+                    bottom = 96.dp,
+                ),
+        ) {
+            if (largeTitle)
+                item {
+                    MusicText(
+                        title,
+                        34,
+                        if (LocalMusicDark.current) Color.White else Color.Black,
+                        androidx.compose.ui.text.font.FontWeight.Bold,
+                        modifier =
+                            Modifier.padding(
+                                horizontal = (20.dp - horizontalInset).coerceAtLeast(0.dp)
+                            ),
+                    )
+                    Spacer(Modifier.height(20.dp))
+                }
+            content()
+        }
     }
+    if (onRefresh == null) pageList()
+    else androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = refreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize(),
+    ) { pageList() }
 }
 
 @Composable actual fun MusicAlphabetIndex(sections: List<Pair<String, Int>>) {}
