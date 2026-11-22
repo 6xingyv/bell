@@ -289,7 +289,7 @@ actual fun MusicOutputMenu(
                                             Box(
                                                 Modifier.fillMaxHeight()
                                                     .fillMaxWidth(routeVolume.coerceIn(0f, 1f))
-                                                    .background(Color(0xFFE2DFF6))
+                                                    .background(Color.White)
                                             )
                                         Row(
                                             Modifier.fillMaxSize()
