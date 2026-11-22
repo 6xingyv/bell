@@ -738,63 +738,76 @@ actual fun MusicNavigationHost(
             ) {
                 val dark = header(active).dark
                 val chooserGlassBackdrop = rememberLayerBackdrop()
-                val chooserBackdrop =
-                    rememberCombinedBackdrop(navigationBackdrop, chooserGlassBackdrop)
+                val scope = rememberCoroutineScope()
+                val chooserPress = remember(scope) { InteractiveHighlight(scope) }
                 CompositionLocalProvider(
                     LocalGlassColors provides defaultGlassColors(dark, MusicAccent),
                     LocalMusicDark provides dark,
                 ) {
                     GlasmioBackdropProvider(navigationBackdrop) {
-                        Row(
-                            Modifier.glasmioAdaptiveContent()
+                        BottomNavigationContact(
+                            backdrop = navigationBackdrop,
+                            modifier = Modifier.glasmioAdaptiveContent()
                                 .statusBarsPadding()
                                 .padding(top = if (topTabs) 64.dp else 4.dp)
                                 .padding(horizontal = 20.dp)
                                 .fillMaxWidth()
                                 .height(48.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+                            joinNearbyControls = true,
                         ) {
-                            GlasmioSearchToolbar(
-                                query = searchQuery,
-                                onQueryChange = {
-                                    searchQuery = it
-                                    model.accept(BellIntent.Search(it.text))
-                                },
-                                onSearch = { model.accept(BellIntent.Search(it)) },
-                                onCancel = {
-                                    searchQuery = TextFieldValue()
-                                    model.accept(BellIntent.Search(""))
-                                },
-                                cancelLabel = text_cancel,
-                                placeholder = text_search_placeholder,
-                                modifier =
-                                    Modifier.weight(1f).onFocusChanged { searchEditing = it.isFocused },
-                                autoFocus = false,
-                                morphProgress = 1f,
-                                enabled = true,
-                            )
-                            Box(
-                                Modifier.widthIn(min = 154.dp, max = 210.dp).height(48.dp),
-                                contentAlignment = Alignment.Center,
+                            Row(
+                                Modifier.fillMaxSize(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                GlassSurface(
-                                    modifier = Modifier.matchParentSize(),
-                                    backdrop = navigationBackdrop,
-                                    shape = Capsule(),
-                                    exportedBackdrop = chooserGlassBackdrop,
-                                ) {}
-                                GlasmioSegmentedControl(
-                                    listOf(
-                                        SearchScope.Library to text_music_library,
-                                        SearchScope.Favorites to text_favorites,
-                                    ),
-                                    currentState.searchScope,
-                                    { model.accept(BellIntent.SearchScope(it)) },
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                                    height = 40.dp,
-                                    backdrop = chooserBackdrop,
+                                GlasmioSearchToolbar(
+                                    query = searchQuery,
+                                    onQueryChange = {
+                                        searchQuery = it
+                                        model.accept(BellIntent.Search(it.text))
+                                    },
+                                    onSearch = { model.accept(BellIntent.Search(it)) },
+                                    onCancel = {},
+                                    cancelLabel = text_cancel,
+                                    placeholder = text_search_placeholder,
+                                    modifier =
+                                        Modifier.weight(1f).onFocusChanged { searchEditing = it.isFocused },
+                                    autoFocus = false,
+                                    morphProgress = 1f,
+                                    enabled = true,
+                                    showCancel = false,
+                                    observeChildPress = true,
                                 )
+                                Box(
+                                    Modifier.widthIn(min = 154.dp, max = 210.dp).height(48.dp)
+                                        .then(chooserPress.gestureModifier),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    val contact = LocalBottomControlContact.current
+                                    val sharedMaterial = contact?.takeIf { it.surface.value != null }
+                                        ?.materialBackdrop
+                                    val chooserBackdrop = rememberCombinedBackdrop(
+                                        navigationBackdrop, sharedMaterial ?: chooserGlassBackdrop,
+                                    )
+                                    GlassSurface(
+                                        modifier = Modifier.matchParentSize(),
+                                        backdrop = navigationBackdrop,
+                                        shape = Capsule(),
+                                        exportedBackdrop = chooserGlassBackdrop,
+                                        pressInteraction = chooserPress,
+                                    ) {}
+                                    GlasmioSegmentedControl(
+                                        listOf(
+                                            SearchScope.Library to text_music_library,
+                                            SearchScope.Favorites to text_favorites,
+                                        ),
+                                        currentState.searchScope,
+                                        { model.accept(BellIntent.SearchScope(it)) },
+                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                                        height = 40.dp,
+                                        backdrop = chooserBackdrop,
+                                    )
+                                }
                             }
                         }
                     }
