@@ -1,0 +1,37 @@
+appId: com.mocharealm.bell
+name: Bell README landscape tablet screenshot
+---
+- setOrientation: LANDSCAPE_LEFT
+- launchApp:
+    stopApp: false
+- tapOn:
+    text: Collapse player
+    optional: true
+- tapOn: Library
+- extendedWaitUntil:
+    visible: Harvest Moon artwork
+    timeout: 30000
+- tapOn: Harvest Moon artwork
+- extendedWaitUntil:
+    visible: He Wants Someone to Call Him Papa
+    timeout: 30000
+- tapOn:
+    text: Shine On, Harvest Moon
+    above: He Wants Someone to Call Him Papa
+- extendedWaitUntil:
+    visible: Pause
+    timeout: 30000
+- tapOn:
+    text: Pause
+    below: He Wants Someone to Call Him Papa
+- tapOn:
+    text: Lyrics
+    below: He Wants Someone to Call Him Papa
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    visible: Playback progress
+    timeout: 30000
+- tapOn: Playback progress
+- waitForAnimationToEnd
+- assertNotVisible: No lyrics available
+- takeScreenshot: lyrics-tablet-landscape
