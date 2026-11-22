@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
@@ -461,7 +462,6 @@ actual fun MusicNavigationHost(
                                         searchLabel = text_search,
                                         onSidebarToggle = adaptive::toggleSidebar,
                                         onSearchBoundsChanged = { searchBounds = it },
-                                        animatePressScale = !tabletMode,
                                         modifier =
                                             Modifier.widthIn(max = minOf(560.dp, availableWidth))
                                                 .onGloballyPositioned {
@@ -650,11 +650,6 @@ actual fun MusicNavigationHost(
                                     searchPage = active == Routes.Search,
                                     searchEditing = searchFocused,
                                     focusTransition = searchTransition.progressState,
-                                    query = searchQuery,
-                                    onQuery = {
-                                        searchQuery = it
-                                        model.accept(BellIntent.Search(it.text))
-                                    },
                                     onFocusSearch = { searchEditing = true },
                                     onSearchPage = ::openSearchPage,
                                     onReturnFromSearch = { goBack() },
@@ -773,12 +768,11 @@ actual fun MusicNavigationHost(
                                 },
                                 cancelLabel = text_cancel,
                                 placeholder = text_search_placeholder,
-                                modifier = Modifier.weight(1f),
+                                modifier =
+                                    Modifier.weight(1f).onFocusChanged { searchEditing = it.isFocused },
                                 autoFocus = false,
                                 morphProgress = 1f,
                                 enabled = true,
-                                showCancel = false,
-                                onFieldFocusChanged = { searchEditing = it },
                             )
                             Box(
                                 Modifier.widthIn(min = 154.dp, max = 210.dp).height(48.dp),

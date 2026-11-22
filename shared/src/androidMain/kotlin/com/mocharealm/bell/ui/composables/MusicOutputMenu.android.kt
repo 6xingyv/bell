@@ -181,7 +181,6 @@ actual fun MusicOutputMenu(
                     backdrop = LocalBlurBackdrop.current,
                     menuAnchorState = anchor,
                     centerHorizontally = centerHorizontally,
-                    preferredWidth = 310.dp,
                     headerContentHeight =
                         maxOf(
                             300.dp,

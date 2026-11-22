@@ -2,21 +2,26 @@
 package com.mocharealm.bell.ui.nav
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
+import com.kyant.shapes.Capsule
 import com.mocharealm.bell.resources.*
 import com.mocharealm.bell.ui.composables.IconTouch
 import com.mocharealm.bell.ui.composables.LocalMusicNavigationCompact
+import io.github.neoruaa.glasmio.core.IosTypography
 import io.github.neoruaa.glasmio.core.LocalGlassColors
 import io.github.neoruaa.glasmio.glass.*
 import io.github.neoruaa.glasmio.glass.render.Backdrop
@@ -38,8 +43,6 @@ internal fun MusicBottomDock(
     searchPage: Boolean,
     searchEditing: Boolean,
     focusTransition: State<Float>,
-    query: TextFieldValue,
-    onQuery: (TextFieldValue) -> Unit,
     onFocusSearch: () -> Unit,
     onSearchPage: () -> Unit,
     onReturnFromSearch: () -> Unit,
@@ -51,7 +54,7 @@ internal fun MusicBottomDock(
     modifier: Modifier = Modifier,
     miniPlayer: @Composable () -> Unit,
 ) {
-    val text_cancel = stringResource(Res.string.cancel)
+    val searchLabel = stringResource(Res.string.search)
     val text_voice_search = stringResource(Res.string.voice_search)
     val text_search_placeholder = stringResource(Res.string.search_placeholder)
 
@@ -110,7 +113,7 @@ internal fun MusicBottomDock(
                 }
             }
     }
-    val contactCalculation =
+    val contactActive: () -> Boolean =
         remember(sourceCompact, landing, focusTransition, player) {
             {
                 val compact = sourceCompact.value
@@ -128,7 +131,6 @@ internal fun MusicBottomDock(
     val searchOuterInset = (NavigationBarSurfaceHeight - CompactBottomControlSize) / 2 * browse
     BottomNavigationContact(
         backdrop = backdrop,
-        calculateContact = contactCalculation,
         modifier =
             modifier.padding(horizontal = searchOuterInset).height(height).graphicsLayer {
                 val p = focusTransition.value
@@ -142,93 +144,102 @@ internal fun MusicBottomDock(
             modifier = Modifier.fillMaxSize(),
             content = {
                 CompositionLocalProvider(
-                    LocalBottomControlContactMemberActive provides active,
+                    LocalBottomControlContactMemberActive provides { contactActive() && active() },
                     LocalMusicNavigationCompact provides miniProgress,
                 ) {
                     miniPlayer()
                 }
-                GlasmioNavigationBar(
-                    tabs,
-                    selected,
-                    onTab,
-                    {
-                        if (searchPage) onReturnFromSearch() else onExpand()
-                    },
-                    mainCompact,
-                    CompactBottomControlSize,
-                    backdrop = backdrop,
-                )
+                CompositionLocalProvider(LocalBottomControlContactMemberActive provides contactActive) {
+                    GlasmioNavigationBar(
+                        tabs,
+                        selected,
+                        onTab,
+                        {
+                            if (searchPage) onReturnFromSearch() else onExpand()
+                        },
+                        mainCompact,
+                        CompactBottomControlSize,
+                        backdrop = backdrop,
+                    )
+                }
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    val controlSize =
-                        NavigationBarSurfaceHeight -
-                            (NavigationBarSurfaceHeight - CompactBottomControlSize) *
-                                mainCompact.value
-                    val scale = controlSize / 48.dp
-                    val slotInset =
-                        ((NavigationBarSurfaceHeight - CompactBottomControlSize) / 2 *
-                                mainCompact.value *
-                                (1f - browse))
-                            .coerceAtLeast(0.dp)
-                    // One native field owns both endpoints. Replacing it with a button at
-                    // progress zero discarded the material/press state on every close.
-                    BoxWithConstraints(
-                        Modifier.fillMaxSize().padding(horizontal = slotInset),
-                        contentAlignment = Alignment.Center,
+                    val inset = (NavigationBarSurfaceHeight - CompactBottomControlSize) / 2
+                    val compact = mainCompact.value
+                    val controlHeight = NavigationBarSurfaceHeight - inset * 2 * compact
+                    val sideInset = inset * compact * (1f - browse)
+                    val colors = LocalGlassColors.current
+                    val labelAlpha = ((browse - .15f) / .65f).coerceIn(0f, 1f)
+                    Box(
+                        Modifier.fillMaxWidth().padding(horizontal = sideInset).height(controlHeight)
                     ) {
-                        GlasmioSearchToolbar(
-                            query,
-                            onQuery,
-                            {},
-                            {},
-                            text_cancel,
-                            text_search_placeholder,
-                            autoFocus = false,
-                            morphProgress = browse,
-                            enabled = searchPage && !searchEditing && browse > .99f,
-                            showCancel = false,
-                            onFieldFocusChanged = { if (it) onFocusSearch() },
-                            onSurfaceClick = {
-                                if (!searchPage) onSearchPage()
-                                else if (!searchEditing) onFocusSearch()
-                            },
-                            collapsedContent = {
-                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    SfIcon(
-                                        SfSymbol.Search,
-                                        null,
-                                        tint = LocalGlassColors.current.content,
-                                        size = CompactBottomControlIconSize,
-                                        fontSize = 18.sp,
-                                        weight = FontWeight.Medium,
-                                        fontFeatureSettings = "'ss16' 1",
-                                        fitGlyphToBounds = false,
-                                    )
-                                }
-                            },
-                            trailingContent = {
-                                if (browse > .5f)
-                                    Box(
-                                        Modifier.graphicsLayer {
-                                            alpha = ((browse - .5f) / .5f).coerceIn(0f, 1f)
-                                        }
+                        CompositionLocalProvider(
+                            LocalBottomControlContactMemberActive provides contactActive
+                        ) {
+                            // Use the same native navigation material as Glasmio's search button
+                            // while the trailing slot grows into the unfocused search capsule.
+                            GlassSurface(
+                                modifier = Modifier.matchParentSize()
+                                    .onGloballyPositioned {
+                                        if (!searchEditing) onSearchBounds(it.boundsInWindow())
+                                    }
+                                    .semantics { contentDescription = searchLabel },
+                                backdrop = backdrop,
+                                shape = Capsule(),
+                                style = GlassSurfaceStyle.Navigation,
+                                nativeNavigationFlex = true,
+                                // The slot already animates its size. Keep the live glass
+                                // attached while it resizes, including the first compact frame.
+                                onClick =
+                                    when {
+                                        searchEditing -> null
+                                        searchPage -> onFocusSearch
+                                        else -> onSearchPage
+                                    },
+                            ) {
+                                SfIcon(
+                                    SfSymbol.Search,
+                                    null,
+                                    modifier = Modifier.align(Alignment.Center).graphicsLayer {
+                                        alpha = 1f - labelAlpha
+                                    },
+                                    tint = colors.content,
+                                    size = CompactBottomControlIconSize,
+                                    fontSize = 18.sp,
+                                    weight = FontWeight.Medium,
+                                    fitGlyphToBounds = false,
+                                )
+                                if (labelAlpha > 0f) {
+                                    Row(
+                                        Modifier.fillMaxSize()
+                                            .padding(start = 12.dp, end = 40.dp)
+                                            .graphicsLayer { alpha = labelAlpha },
+                                        verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        IconTouch(
-                                            "mic",
-                                            text_voice_search,
-                                            { if (searchPage && browse > .99f) onVoice() },
-                                            iconSize = 20.dp,
-                                            touchSize = 32.dp,
+                                        SfIcon(SfSymbol.Search, null, tint = colors.secondaryContent, size = 21.dp)
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            text_search_placeholder,
+                                            style = IosTypography.body,
+                                            color = colors.tertiaryContent,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
                                         )
                                     }
-                            },
-                            modifier =
-                                Modifier.width(maxWidth / scale)
-                                    .graphicsLayer {
-                                        scaleX = scale
-                                        scaleY = scale
-                                    }
-                                    .onGloballyPositioned { onSearchBounds(it.boundsInWindow()) },
-                        )
+                                }
+                            }
+                        }
+                        if (searchPage && browse >= .99f && !searchEditing) {
+                            Box(Modifier.align(Alignment.CenterEnd).padding(end = 6.dp)) {
+                                IconTouch(
+                                    "mic",
+                                    text_voice_search,
+                                    onVoice,
+                                    color = colors.content,
+                                    iconSize = 20.dp,
+                                    touchSize = 32.dp,
+                                )
+                            }
+                        }
                     }
                 }
             },
