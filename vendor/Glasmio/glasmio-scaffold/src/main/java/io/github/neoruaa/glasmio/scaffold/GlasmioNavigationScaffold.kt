@@ -501,7 +501,9 @@ fun GlasmioPageBody(
     val captureEnabled = backdrop != null || (appearance.usesBackdrop && progress != 0f)
     Box(modifier.fillMaxSize()) {
         Box(
-            Modifier.fillMaxSize().conditionalLayerBackdrop(pageBackdrop, captureEnabled).trackBackdropPosition(pageBackdrop),
+            Modifier.fillMaxSize().conditionalLayerBackdrop(
+                pageBackdrop, captureEnabled, reuseContent = true,
+            ).trackBackdropPosition(pageBackdrop),
         ) {
             Box(
                 Modifier.matchParentSize()

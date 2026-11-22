@@ -42,8 +42,11 @@ fun Modifier.layerBackdrop(backdrop: LayerBackdrop, reuseContent: Boolean): Modi
 
 /** Keep source coordinates attached while its owner has no visible or external consumer. */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-fun Modifier.conditionalLayerBackdrop(backdrop: LayerBackdrop, captureEnabled: Boolean): Modifier =
-    this then LayerBackdropElement(backdrop, reuseContent = false, captureEnabled = captureEnabled)
+fun Modifier.conditionalLayerBackdrop(
+    backdrop: LayerBackdrop,
+    captureEnabled: Boolean,
+    reuseContent: Boolean = false,
+): Modifier = this then LayerBackdropElement(backdrop, reuseContent, captureEnabled)
 
 private class LayerBackdropElement(
     val backdrop: LayerBackdrop,
