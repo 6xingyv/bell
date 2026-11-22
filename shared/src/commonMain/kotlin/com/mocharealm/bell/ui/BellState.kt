@@ -18,6 +18,7 @@ data class BellState(
         com.mocharealm.bell.domain.model.ListeningState(),
     val session: Session? = null,
     val loading: Boolean = false,
+    val refreshingHome: Boolean = false,
     val error: MusicError? = null,
     val albums: List<Item> = emptyList(),
     val songs: List<Item> = emptyList(),

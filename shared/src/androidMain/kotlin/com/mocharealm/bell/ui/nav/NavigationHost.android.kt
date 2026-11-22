@@ -810,6 +810,8 @@ actual fun MusicPage(
     largeTitle: Boolean,
     horizontalInset: Dp,
     underHeader: Boolean,
+    refreshing: Boolean,
+    onRefresh: (() -> Unit)?,
     content: LazyListScope.() -> Unit,
 ) {
     val page = LocalNativeMusicEntry.current
@@ -848,36 +850,46 @@ actual fun MusicPage(
             topBarBlurProgress = edge,
             background = { background() },
         ) { bodyPadding ->
-            LazyColumn(
-                state = list,
-                modifier = Modifier.fillMaxSize().consumeWindowInsets(bodyPadding),
-                contentPadding = bodyPadding,
-            ) {
-                if (largeTitle)
-                    item(key = "native-large-title") {
-                        androidx.compose.material3.Text(
-                            title,
-                            style = IosTypography.largeTitle,
-                            fontWeight = FontWeight.Bold,
-                            color = if (LocalMusicDark.current) Color.White else Color.Black,
-                            modifier =
-                                Modifier.fillMaxWidth()
-                                    .graphicsLayer {
-                                        alpha = 1f - collapse
-                                        scaleX = 1f - .04f * collapse
-                                        scaleY = scaleX
-                                        transformOrigin = TransformOrigin(0f, .5f)
-                                    }
-                                    .blur(6.dp * collapse)
-                                    .offset(y = if (searchLanding) 0.dp else (-10).dp)
-                                    .padding(
-                                        horizontal = (20.dp - horizontalInset).coerceAtLeast(0.dp),
-                                        vertical = 6.dp,
-                                    ),
-                        )
-                    }
-                content()
+            val pageList: @Composable () -> Unit = {
+                LazyColumn(
+                    state = list,
+                    modifier = Modifier.fillMaxSize().consumeWindowInsets(bodyPadding),
+                    contentPadding = bodyPadding,
+                ) {
+                    if (largeTitle)
+                        item(key = "native-large-title") {
+                            androidx.compose.material3.Text(
+                                title,
+                                style = IosTypography.largeTitle,
+                                fontWeight = FontWeight.Bold,
+                                color = if (LocalMusicDark.current) Color.White else Color.Black,
+                                modifier =
+                                    Modifier.fillMaxWidth()
+                                        .graphicsLayer {
+                                            alpha = 1f - collapse
+                                            scaleX = 1f - .04f * collapse
+                                            scaleY = scaleX
+                                            transformOrigin = TransformOrigin(0f, .5f)
+                                        }
+                                        .blur(6.dp * collapse)
+                                        .offset(y = if (searchLanding) 0.dp else (-10).dp)
+                                        .padding(
+                                            horizontal = (20.dp - horizontalInset).coerceAtLeast(0.dp),
+                                            vertical = 6.dp,
+                                        ),
+                            )
+                        }
+                    content()
+                }
             }
+            if (onRefresh != null) {
+                io.github.neoruaa.glasmio.scaffold.GlasmioPullToRefreshBox(
+                    isRefreshing = refreshing,
+                    onRefresh = onRefresh,
+                    modifier = Modifier.fillMaxSize(),
+                    indicatorPadding = PaddingValues(top = bodyPadding.calculateTopPadding()),
+                ) { pageList() }
+            } else pageList()
         }
     }
 }

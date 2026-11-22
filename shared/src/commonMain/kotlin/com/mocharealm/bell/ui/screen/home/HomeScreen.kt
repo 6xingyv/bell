@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.*
 import androidx.compose.ui.unit.*
 import com.mocharealm.bell.domain.model.Item
 import com.mocharealm.bell.resources.*
+import com.mocharealm.bell.ui.BellIntent
 import com.mocharealm.bell.ui.BellState
 import com.mocharealm.bell.ui.BellStore
 import com.mocharealm.bell.ui.composables.EmptyMusic
@@ -56,7 +57,12 @@ internal fun HomeScreen(
     val recommendationList = rememberLazyListState()
     val mixList = rememberLazyListState()
     // The row owns its gutters so scrolling cards reach the window edge, not a padded clip.
-    MusicPage(title, horizontalInset = 0.dp) {
+    MusicPage(
+        title,
+        horizontalInset = 0.dp,
+        refreshing = state.refreshingHome,
+        onRefresh = { model.accept(BellIntent.PullToRefreshHome) },
+    ) {
         if (screenState.recommendations.isNotEmpty())
             item {
                 Spacer(Modifier.height(24.dp))
