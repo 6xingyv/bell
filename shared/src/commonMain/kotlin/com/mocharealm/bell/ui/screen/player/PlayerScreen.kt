@@ -15,11 +15,15 @@ import androidx.compose.ui.draw.*
 import androidx.compose.ui.geometry.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.*
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.*
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
 import com.mocharealm.accompanist.lyrics.core.model.synced.SyncedLine
@@ -54,6 +58,8 @@ import com.mocharealm.bell.ui.composables.rememberDeviceVolume
 import com.mocharealm.bell.ui.composables.rememberMusicSharer
 import com.mocharealm.bell.ui.composables.songMenu
 import com.mocharealm.bell.ui.nav.LocalPlayerMotion
+import com.mocharealm.bell.ui.screen.player.composables.LyricsExcerpt
+import com.mocharealm.bell.ui.screen.player.composables.LyricsShareSheet
 import com.mocharealm.bell.ui.screen.player.composables.MusicPlayerMetadata
 import com.mocharealm.bell.ui.screen.player.composables.MusicPlayerQueue
 import com.mocharealm.bell.ui.screen.player.composables.MusicPlayerTimeline
@@ -65,6 +71,9 @@ import com.mocharealm.bell.ui.screen.player.composables.QueueCurrentHeaderKey
 import com.mocharealm.bell.ui.screen.player.composables.QueueDragOverlay
 import com.mocharealm.bell.ui.screen.player.composables.QueueDragState
 import com.mocharealm.bell.ui.screen.player.composables.QueueGlassHost
+import com.mocharealm.bell.ui.screen.player.composables.excerptFrom
+import com.mocharealm.bell.ui.screen.player.composables.excerptAtPosition
+import com.mocharealm.bell.ui.screen.player.composables.lyricExcerptAt
 import com.mocharealm.bell.ui.screen.player.composables.queueCurrentIndex
 import com.mocharealm.bell.ui.screen.player.composables.queueHistoryHeaderOffset
 import com.mocharealm.bell.ui.screen.player.composables.rememberMusicLyricsTypography
@@ -234,6 +243,19 @@ internal fun PlayerScreen(
     val duration =
         (screenState.audio.durationMs.takeIf { it > 0 } ?: item.durationMs).coerceAtLeast(1)
     val share = rememberMusicSharer()
+    val lyricsMesh = rememberGraphicsLayer()
+    val lyricTextMeasurer = rememberTextMeasurer()
+    var pressedOnScreen by remember { mutableStateOf<Offset?>(null) }
+    var playerCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    var timedLyricsCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    var lyricsShareSource by remember(item.id) { mutableStateOf<Rect?>(null) }
+    var lyricsExcerpt by remember(item.id) { mutableStateOf<LyricsExcerpt?>(null) }
+    var lyricsShareVisible by remember(item.id) { mutableStateOf(false) }
+    fun openLyricsShare(excerpt: LyricsExcerpt, source: Rect?) {
+        lyricsShareSource = source
+        lyricsExcerpt = excerpt
+        lyricsShareVisible = true
+    }
     val menu =
         songMenu(
             menuStrings,
@@ -241,10 +263,18 @@ internal fun PlayerScreen(
             state,
             item,
             share,
-            lyric?.lines.orEmpty().joinToString("\n") { (text, translation) ->
-                listOfNotNull(text, translation).joinToString("\n")
+            onShareLyrics = lyric?.takeIf { it.lines.any { row -> row.first.isNotBlank() } }?.let { display ->
+                {
+                    val excerpt = if (display.kind == LyricKind.Unsynced)
+                        lyricExcerptAt(
+                            display.lines.map { it.first },
+                            display.lines.indexOfFirst { it.first.isNotBlank() },
+                        )
+                    else display.timed.lines.excerptAtPosition(position.intValue)
+                    excerpt?.let { openLyricsShare(it, null) }
+                }
             },
-            dismiss,
+            leavePlayer = dismiss,
         )
     val translationTracks =
         remember(screenState.lyrics) {
@@ -316,8 +346,26 @@ internal fun PlayerScreen(
     CompositionLocalProvider(LocalMusicDark provides true, LocalMusicPlayerPlus provides true) {
         MusicMenuSource {
             ListeningGroupsSheet(model, state, visible = listeningSheet) { listeningSheet = false }
+            lyricsExcerpt?.let { excerpt ->
+                key(excerpt) {
+                    LyricsShareSheet(
+                        model,
+                        state,
+                        item,
+                        excerpt,
+                        visible = lyricsShareVisible,
+                        source = lyricsShareSource,
+                        sourceFontSize = lyricsTypography.normal.fontSize,
+                        mesh = lyricsMesh,
+                        dismiss = { lyricsShareVisible = false },
+                        share = share,
+                    )
+                }
+            }
             BoxWithConstraints(
-                Modifier.fillMaxSize().clipToBounds().pointerInput(Unit) {
+                Modifier.fillMaxSize().clipToBounds()
+                    .onGloballyPositioned { playerCoordinates = it }
+                    .pointerInput(Unit) {
                     awaitEachGesture {
                         val first =
                             awaitFirstDown(
@@ -325,6 +373,8 @@ internal fun PlayerScreen(
                                 pass = PointerEventPass.Initial,
                             )
                         touching = true
+                        pressedOnScreen = playerCoordinates?.takeIf { it.isAttached }
+                            ?.localToScreen(first.position)?.takeIf { it.isFinite }
                         interaction++
                         val lyricsHidden =
                             latestPanel == PlayerPanel.Lyrics && !latestControlsVisible
@@ -392,7 +442,11 @@ internal fun PlayerScreen(
                                 item,
                                 player = true,
                                 modifier =
-                                    Modifier.graphicsLayer { alpha = motion?.progress ?: 1f },
+                                    Modifier.graphicsLayer { alpha = motion?.progress ?: 1f }
+                                        .then(if (lyricsShareVisible) Modifier.drawWithContent {
+                                            lyricsMesh.record { this@drawWithContent.drawContent() }
+                                            drawLayer(lyricsMesh)
+                                        } else Modifier),
                             )
                             val coverTop = height * .108f
                             val largeSide =
@@ -517,7 +571,23 @@ internal fun PlayerScreen(
                                                     ) {
                                                         itemsIndexed(lyric.lines) { index, row ->
                                                             val (original, translation) = row
-                                                            Column {
+                                                            var rowBounds by remember { mutableStateOf<Rect?>(null) }
+                                                            Column(
+                                                                Modifier.fillMaxWidth()
+                                                                    .onGloballyPositioned { coordinates ->
+                                                                        val origin = coordinates.localToScreen(Offset.Zero)
+                                                                        rowBounds = if (origin.isFinite) Rect(origin, coordinates.size.toSize()) else null
+                                                                    }
+                                                                    .combinedClickable(
+                                                                        onClick = { revealControls() },
+                                                                        onLongClick = {
+                                                                            lyricExcerptAt(
+                                                                                lyric.lines.map { it.first },
+                                                                                index,
+                                                                            )?.let { openLyricsShare(it, rowBounds) }
+                                                                        },
+                                                                    )
+                                                            ) {
                                                                 MusicStaticLyricText(
                                                                     original,
                                                                     if (
@@ -569,9 +639,32 @@ internal fun PlayerScreen(
                                                             )
                                                             revealControls()
                                                         },
-                                                        onLinePressed = { revealControls() },
+                                                        onLinePressed = { line ->
+                                                            lyric.timed.lines.excerptFrom(line)?.let { excerpt ->
+                                                                val coordinates = timedLyricsCoordinates?.takeIf { it.isAttached }
+                                                                val press = pressedOnScreen
+                                                                val source = if (coordinates == null || press == null) null else {
+                                                                    val start = coordinates.localToScreen(Offset.Zero)
+                                                                    val gutter = with(density) { 16.dp.toPx() }
+                                                                    val textWidth = (coordinates.size.width - 2 * gutter).toInt().coerceAtLeast(1)
+                                                                    val textHeight = lyricTextMeasurer.measure(
+                                                                        excerpt.lines[excerpt.initialIndex],
+                                                                        style = lyricsTypography.normal,
+                                                                        constraints = Constraints(maxWidth = textWidth),
+                                                                    ).size.height + gutter
+                                                                    val top = (press.y - textHeight / 2f).coerceIn(
+                                                                        start.y,
+                                                                        start.y + (coordinates.size.height - textHeight).coerceAtLeast(0f),
+                                                                    )
+                                                                    if (start.isFinite) Rect(start.x + gutter, top, start.x + coordinates.size.width - gutter, top + textHeight)
+                                                                    else null
+                                                                }
+                                                                openLyricsShare(excerpt, source)
+                                                            }
+                                                        },
                                                         modifier =
-                                                            Modifier.fillMaxSize().musicPlus(),
+                                                            Modifier.fillMaxSize().musicPlus()
+                                                                .onGloballyPositioned { timedLyricsCoordinates = it },
                                                         anchor =
                                                             if (tabletLandscape)
                                                                 LyricsAnchor.Fraction(.25f)
