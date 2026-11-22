@@ -131,6 +131,7 @@ internal fun MusicBottomDock(
     val searchOuterInset = (NavigationBarSurfaceHeight - CompactBottomControlSize) / 2 * browse
     BottomNavigationContact(
         backdrop = backdrop,
+        joinNearbyControls = true,
         modifier =
             modifier.padding(horizontal = searchOuterInset).height(height).graphicsLayer {
                 val p = focusTransition.value
