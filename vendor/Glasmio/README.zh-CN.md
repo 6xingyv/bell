@@ -34,13 +34,13 @@ Glasmio 为 Android 独立实现这些效果和交互，不执行 Apple 的 Meta
 | --- | --- | --- |
 | ![Sheet 展开、全屏和收起](docs/images/showcase/sheet-motion.gif) | ![文本选择和完整编辑工具栏](docs/images/showcase/text-toolbar.gif) | ![液态菜单展开与收起](docs/images/showcase/menu.gif) |
 
-六个库使用统一版本 `0.1.3`，Maven 组名为 `io.github.neoruaa.glasmio`。
+六个库使用统一版本 `0.1.4`，Maven 组名为 `io.github.neoruaa.glasmio`。
 
 ## Demo 应用
 
 [下载 Demo APK](https://github.com/NEORUAA/Glasmio/releases/latest/download/Glasmio-demo.apk)
 
-需要 Android 13（API 33）或更高版本。Demo 包含 SF Pro、SF Symbols 和真正的斜体字体；库产物不含字体文件。
+需要 Android 12（API 31）或更高版本。Demo 包含 SF Pro、SF Symbols 和真正的斜体字体；库产物不含字体文件。
 
 ## 模块
 
@@ -60,7 +60,7 @@ UI 模块会传递暴露其底层依赖，添加所需的最高层模块即可�
 
 ## 构建与运行
 
-需要 JDK 21、Android SDK 37、NDK `27.1.12297006` 和 CMake `3.22.1`。最低支持 Android API 33。仓库包含 Gradle Wrapper。
+需要 JDK 21、Android SDK 37、NDK `27.1.12297006` 和 CMake `3.22.1`。源码构建支持 Android 12（API 31）及以上版本。在 Android 12 和 12L 上，玻璃材质使用普通模糊和简化渲染。AGSL 折射等着色器效果需要 API 33。仓库包含 Gradle Wrapper。
 
 ```sh
 ./gradlew :sample:assembleDebug testDebugUnitTest lintDebug
@@ -104,8 +104,8 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("io.github.neoruaa.glasmio:glasmio-scaffold:0.1.3")
-    implementation("io.github.neoruaa.glasmio:glasmio-preference:0.1.3")
+    implementation("io.github.neoruaa.glasmio:glasmio-scaffold:0.1.4")
+    implementation("io.github.neoruaa.glasmio:glasmio-preference:0.1.4")
 }
 ```
 

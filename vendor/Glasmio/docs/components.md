@@ -18,9 +18,10 @@ Glasmio uses state-hoisted Compose APIs: pass a value and handle its change call
 | Toolbars | `GlasmioTopBar`, `GlasmioTopBarStyle`, `GlasmioToolbarActionGroup`, `GlasmioToolbarActionStyle`, `GlasmioBottomToolbar`, `GlasmioSheetTopToolbar`, `GlasmioSheetToolbarButton`, `GlasmioSheetButton` |
 | Navigation | `GlasmioNavigationBar`, `GlasmioNavigationBarWithTrailingItem`, `GlasmioTabItem`, `GlasmioNavigationScrollState`, `rememberGlasmioNavigationScrollState`, `Modifier.glasmioNavigationScrollHint` |
 | Menus | `GlasmioMenu`, `GlasmioMenuItem`, `GlasmioContextMenu`, `GlasmioCascadingMenu`, `GlasmioCascadingMenuItem`, `GlasmioPopUpButton`, `rememberGlasmioMenuAnchorState`, `Modifier.glasmioMenuAnchor` |
+| Anchored help and content | `GlasmioTooltip`, `GlasmioPopover` |
 | Alerts | `GlasmioAlertDialog`, `GlasmioAlertButtonSpec`, `GlasmioAlertButtonRole`, `GlasmioAlertButtonLayout`, `GlasmioAlertSurface`, `GlasmioAlertButton`, `GlasmioAlertFieldGroup`, `GlasmioAlertTextField` |
 | Sheets and overlays | `GlasmioBottomSheet`, `GlasmioSheetSurface`, `GlasmioActionSheet`, `GlasmioActionSheetContent`, `GlasmioModalOverlay` |
-| Pages | `GlasmioNavigationScaffold`, `GlasmioPageBody`, `GlasmioPageTitle`, `GlasmioScaffold`, `GlasmioListPage`, `GlasmioPinnedListPage`, `GlasmioPinnedPage`, `rememberGlasmioGridCollapseProgress`, `GlasmioOverscrollHost`, `Modifier.pullToRefreshRebound`, `rememberGlasmioAppBarScrollBehavior` |
+| Pages | `GlasmioNavigationScaffold`, `GlasmioPageBody`, `GlasmioPageTitle`, `GlasmioScaffold`, `GlasmioListPage`, `GlasmioPinnedListPage`, `GlasmioPinnedPage`, `rememberGlasmioGridCollapseProgress`, `GlasmioOverscrollHost`, `GlasmioPullToRefreshBox`, `Modifier.pullToRefreshRebound`, `rememberGlasmioAppBarScrollBehavior` |
 | Floating search | `GlasmioFloatingSearch`, `GlasmioFloatingSearchButton` |
 | Sheet motion | `GlasmioSheetState`, `rememberGlasmioSheetState`, `GlasmioSheetValue`; custom player containers retain `GlasmioBottomSheetState` and `GlasmioSheetDefaults` |
 | Preferences | `GlasmioPreferenceEntry`, `GlasmioSwitchPreference`, `GlasmioEditTextPreference`, `GlasmioListPreference`, `GlasmioEnumListPreference`, `GlasmioPreferenceGroupTitle` |
@@ -239,6 +240,24 @@ fun EditingScreen() = ExampleHost {
 
 ## Lists, insets, and preferences
 
+Glasmio scaffolds apply horizontal hardware-safe spacing only to page content. With the
+sidebar closed, both sides use `max(left, right)`, including floating search results and
+the content padding and edge-to-edge expansion of horizontal scrollers. An expanded
+sidebar replaces the hardware-safe margin on its facing side; the outer side keeps that
+margin. During sidebar animation, each side reserves the larger of the sidebar's occupied
+width and the hardware-safe margin. Page toolbars, navigation bars and floating search
+chrome do not add horizontal hardware-safe spacing. Sidebar content keeps its independent
+physical-side insets; its occupied width is never mirrored.
+
+`LocalGlasmioHorizontalSafeAreaEnabled` defaults to `true`. Provide `false` around an app
+or screen to omit horizontal hardware-safe spacing from page content, sidebars, sheets and
+editing overlays. Horizontal scrollers stop adding hardware-safe padding or expanding
+through it, while adaptive sidebar space remains reserved. Vertical system-bar and IME
+insets are unchanged. Sheet surfaces retain their full width; the setting only changes
+their foreground spacing. Outside scaffolds, `WindowInsets.glasmioSafeDrawing` follows
+the same switch while retaining independent left and right values. Override the local
+with `true` around any surface that must always retain its existing safe-area behavior.
+
 `GlasmioPinnedListPage` owns a collapsing large title and its fixed toolbar. Its content uses `LazyListScope`, so item keys and lazy content remain under application control. The page owns its top inset; `bottomPadding` can include the space occupied by an application bottom bar.
 
 The large title collapses on a breakpoint rather than tracking the finger: it expands below `collapseExitBreakpoint` (24 dp by default) and collapses once the list passes `collapseEnterBreakpoint` (56 dp by default), playing one spring between the two states. The gap between the thresholds is hysteresis, so a scroll resting near the boundary cannot retrigger the motion. The top bar material stays continuous and still fades with the scroll offset.
@@ -272,7 +291,9 @@ fun PreferencesScreen() = ExampleHost {
 
 For independently measured bars, use `GlasmioScaffold` and pass its `PaddingValues` to `GlasmioListPage(contentPadding = padding)`. The list applies and consumes that padding once. Use `GlasmioPinnedPage` with `rememberGlasmioHeaderCollapse(gridState)` when the body is a lazy grid rather than a list; `rememberGlasmioGridCollapseProgress` is the legacy name for the same breakpoint-driven value. `rememberGlasmioHeaderScrollEdge` returns the continuous progress for a top bar material that must not pulse with the collapse.
 
-The sample's Lists page switches between a lazy list and an adaptive grid while preserving each scroll state. Its toolbar refresh and pull gesture share one caller-owned callback, rotating the visible items after a short refresh. `Modifier.pullToRefreshRebound` animates only the body; the refresh indicator sits below the fixed toolbar, and both layouts apply the pinned page's content padding once.
+Wrap a vertically scrollable child in `GlasmioPullToRefreshBox`. Set `isRefreshing` to true in `onRefresh` when accepting a pull, then reset it when the work completes. The control reveals the bold `progress.indicator` glyph from the host symbol font and rotates it while the request is active. With a fixed toolbar, pass its top content inset as `indicatorPadding` and apply the page content padding to the scrollable child as usual.
+
+The sample's Lists page demonstrates the control in a lazy list and an adaptive grid. The pull gesture and toolbar button share the same refresh callback. `Modifier.pullToRefreshRebound` is available for callers that provide their own refresh indicator and want the body to return immediately after release.
 
 Preferences present values and report edits. The host chooses DataStore, database, network, or in-memory storage. Disable a row's content without dimming its separator. Set `showTopSeparator = false` on the first preference row in a group.
 
@@ -320,13 +341,42 @@ fun MenuScreen() = ExampleHost {
 }
 ```
 
+## Tooltips and popovers
+
+`GlasmioTooltip` wraps an anchor and shows a brief, noninteractive hint after
+pointer hover or touch and hold. The hint can flip below its anchor to stay
+within the safe area. Touch and hold also works with a stylus.
+
+`GlasmioPopover` takes a caller-owned `visible` value, a dismissal callback,
+an anchor, and arbitrary column content. Its rounded pointer and panel share
+one outline for the shadow, highlight, and refraction. The panel uses the
+Regular glass color response with adaptive contrast and springs from the
+pointer tip. It prefers the direction with the most visible area and closes
+on outside tap or Back. In windows narrower than
+600dp or shorter than 480dp it uses the existing sheet presenter by default.
+Pass `adaptToSheet = false` to keep it anchored in compact windows.
+
+Glasmio's contour and material were informed by a native popover probe on an
+iPhone 13 mini. The `probe` and `native` notes under
+`.local-research/ios/anchored-presentations/` record the geometry, motion, and
+material observations. The touch tooltip is specific to Glasmio.
+
 ## Alerts and sheets
 
 `GlasmioAlertButtonSpec` carries the action, role, and enabled state. Keep alerts and sheets in composition and drive their `visible` state so the window and its backdrop remain mounted through dismissal.
 
 `GlasmioBottomSheet` owns its modal window, native-style detents, drag resistance, projected release and scroll handoff. Its `GlasmioSheetState` is independent of Material3. Enable medium and large with `skipPartiallyExpanded = false`; the default has only large. Medium is resolved from available height and safe areas, then the entire platter and its content are uniformly inset. Upward scrolling expands the sheet before scrolling its content. At large, content scrolling and its fling take over; dragging down at the content's top returns control to the sheet. Set `prefersScrollingExpandsWhenScrolledToEdge = false` to reserve expansion for direct dragging or state commands.
 
-The medium background is glass; the large background uses the system background color. Crossing the native full-height threshold retargets a separate background spring. `fitContent = true` presents a short action panel with floating insets. Insets include the IME by default and can be overridden through `contentWindowInsets` and `contentNavigationBarInsets`. See the [native sheet reference](ios-sheet-motion.md) for the recovered implementation and device measurements.
+The medium background is glass; the large background uses the system background color. Crossing the native full-height threshold retargets a separate background spring. `fitContent = true` presents a short action panel with floating insets. Vertical spacing includes the IME by default and can be overridden through `contentWindowInsets` and `contentNavigationBarInsets`. See the [native sheet reference](ios-sheet-motion.md) for the recovered implementation and device measurements.
+
+The page-sheet layout follows the available window size. In regular height, a wide window presents a centered platter with a shared bottom edge for Medium and Large. A narrower window presents a bottom sheet. Compact-height windows use a full-screen modal by default, or a bottom-attached sheet inside the horizontal safe area with `edgeAttachedInCompactHeight = true`. Medium is unavailable at compact height and resumes when it becomes available again if it was the selected detent.
+
+The floating platter is centered in the window after reserving `max(left, right)` on both
+sides. Floating and compact edge-attached platters already sit within the horizontal safe area.
+Edge-to-edge layouts reserve `max(left, right)` on both sides of the foreground content
+according to `LocalGlasmioHorizontalSafeAreaEnabled`. In full-screen mode this setting
+also keeps toolbar controls inside the hardware insets. Backgrounds span the full platter.
+The custom player sheet retains its separate layout and motion contract.
 
 Inside a sheet, grouped rows inherit UIKit's material context. Medium rows transform the sheet's exported backplate with the native vibrancy matrix; Large rows use opaque semantic colors. Labels and separators follow their own native color roles. With `topBar`, the host keeps the grouped-table canvas separate from fading content. Use `contentBackground` for custom backgrounds, rather than painting a background on the foreground scroll container. Without `topBar`, apply `GlasmioTheme.colors.groupedBackground` to the table container as before. The sheet's own backing, the table canvas and its cells are separate layers.
 

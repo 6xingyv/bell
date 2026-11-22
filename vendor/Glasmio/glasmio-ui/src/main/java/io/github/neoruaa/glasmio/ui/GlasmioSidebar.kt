@@ -101,8 +101,8 @@ fun GlasmioSidebar(
                         val child = measurable.measure(constraints)
                         layout(child.width, child.height) { child.placeWithLayer(0, 0, preview) }
                     }
-                    .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.End))
-                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start))) { content() }
+                    .consumeWindowInsets(WindowInsets.glasmioSafeDrawing.only(WindowInsetsSides.End))
+                    .windowInsetsPadding(WindowInsets.glasmioSafeDrawing.only(WindowInsetsSides.Start))) { content() }
             }
         }
     }
@@ -196,8 +196,14 @@ fun GlasmioSidebarSearchField(
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { onSearch?.invoke() }),
             decorationBox = { field ->
-                Box {
-                    if (query.isEmpty()) Text(placeholder, style = IosTypography.body, color = colors.secondaryContent)
+                Box(contentAlignment = Alignment.CenterStart) {
+                    if (query.isEmpty()) Text(
+                        placeholder,
+                        style = IosTypography.body,
+                        color = colors.secondaryContent,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                     field()
                 }
             },

@@ -1,5 +1,6 @@
 package io.github.neoruaa.glasmio.glass
 
+import io.github.neoruaa.glasmio.glass.render.isRuntimeShaderSupported
 import io.github.neoruaa.glasmio.core.*
 import io.github.neoruaa.glasmio.icons.*
 import io.github.neoruaa.glasmio.glass.render.sampleBackdropLuminance
@@ -7,6 +8,7 @@ import io.github.neoruaa.glasmio.glass.render.ProvideGlassMaterialContext
 import io.github.neoruaa.glasmio.glass.render.rememberGlassMaterialContext
 
 import android.graphics.RenderEffect
+import androidx.annotation.RestrictTo
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
@@ -99,6 +101,9 @@ internal val ModifierLocalMenuAnchor = modifierLocalOf<GlasmioMenuAnchorState?> 
 /** Transfers a complete connected toolbar surface to its menu without changing its layout. */
 @Stable
 class GlasmioMenuAnchorState constructor() {
+    @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    val dragSelection = GlasmioMenuDragSelection()
+
     private var group: ToolbarActionGroup? = null
     private var triggerBounds by mutableStateOf<Rect?>(null)
     private var acquiredBounds by mutableStateOf<Rect?>(null)
@@ -118,7 +123,7 @@ class GlasmioMenuAnchorState constructor() {
 
     @Synchronized
     fun prewarmShaders() {
-        if (shaderPrograms == null) shaderPrograms = LiquidMenuShaderPrograms()
+        if (isRuntimeShaderSupported() && shaderPrograms == null) shaderPrograms = LiquidMenuShaderPrograms()
     }
     var portal by mutableStateOf<ToolbarMenuPortal?>(null)
         private set
@@ -320,7 +325,15 @@ fun rememberGlasmioMenuAnchorState(): GlasmioMenuAnchorState {
 
 /** Attach to the source button even when its menu is composed outside the toolbar. */
 @Composable
-fun Modifier.glasmioMenuAnchor(state: GlasmioMenuAnchorState): Modifier {
+fun Modifier.glasmioMenuAnchor(state: GlasmioMenuAnchorState): Modifier =
+    glasmioMenuAnchor(state, onOpenMenu = null)
+
+/** Attach the source and allow its original touch to select a row after opening on hold. */
+@Composable
+fun Modifier.glasmioMenuAnchor(
+    state: GlasmioMenuAnchorState,
+    onOpenMenu: (() -> Unit)?,
+): Modifier {
     val group = LocalIosToolbarActionGroup.current
     val contentLayer = rememberGraphicsLayer()
     DisposableEffect(state, contentLayer) {
@@ -328,6 +341,7 @@ fun Modifier.glasmioMenuAnchor(state: GlasmioMenuAnchorState): Modifier {
     }
     LaunchedEffect(state) { withContext(Dispatchers.Default) { state.prewarmShaders() } }
     return onGloballyPositioned { state.bind(group, it.boundsInWindow()) }
+        .then(if (onOpenMenu != null) Modifier.glasmioMenuGesture(state, onOpenMenu) else Modifier)
         .modifierLocalProvider(ModifierLocalMenuAnchor) { state }
         .graphicsLayer {
             // The live anchor is hidden only after its foreground has a portal owner.
@@ -439,7 +453,8 @@ fun GlasmioToolbarActionHost(
     }
     group.materialEffect = remember(materialRenderer, materialRecipe, appearance) {
         { material, alpha ->
-            if (material.color == null && material.sampleBackdrop && appearance.usesBackdrop) materialRenderer.effect(materialRecipe, alpha)
+            if (isRuntimeShaderSupported() && material.color == null && material.sampleBackdrop && appearance.usesBackdrop)
+                materialRenderer.effect(materialRecipe, alpha)
             else null
         }
     }
@@ -470,23 +485,6 @@ fun GlasmioToolbarActionHost(
             val shape = remember(shapeState) { { shapeState.value } }
             val press = remember(group, run) {
                 derivedStateOf { run.maxOfOrNull { it.highlight.pressProgress } ?: 0f }
-            }
-            var headerContactMember: BottomControlContactMember? = null
-            if (navigationMaterial && LocalBottomControlContact.current != null) {
-                val ownerActive = LocalBottomControlContactMemberActive.current
-                CompositionLocalProvider(LocalBottomControlContactMemberActive provides {
-                    ownerActive() && !group.isMenuSourceHidden(run)
-                }) {
-                    headerContactMember = rememberBottomControlContactMember(
-                        visualBounds = {
-                            val base = group.bounds(run)
-                            val transform = group.pressTransform(run.first())
-                            Rect(transform.map(base.topLeft), transform.map(base.bottomRight)).translate(-base.topLeft)
-                        },
-                        materialPressProgress = { press.value },
-                        highlight = { group.sampledPressHighlight(run)?.highlight ?: GlassPressHighlight() },
-                    )
-                }
             }
             val background = remember(backdrop, shape, colors, appearance, innerShadows, material, run, materialDark, darkFraction) {
                 Modifier.navigationGlassBackgroundResolved(
@@ -521,8 +519,7 @@ fun GlasmioToolbarActionHost(
                 layout(constraints.maxWidth, constraints.maxHeight) {
                     placeable.place(bounds.left.roundToInt(), bounds.top.roundToInt())
                 }
-            }.onGloballyPositioned { headerContactMember?.updateCoordinates(it) }
-                .then(if (headerContactMember?.sharesSurface == true) Modifier else background))
+            }.then(background))
         } }
         ProvideGlassMaterialContext(materialContext) {
             CompositionLocalProvider(LocalIosToolbarActionGroup provides group) {
@@ -900,7 +897,9 @@ class ToolbarActionGroup(
     }
 
     fun shape(run: List<ToolbarActionMember>, separation: Float): Shape {
-        if (hasPresentationBounds && separation == 0f && run.size == 1) return CircleShape
+        if (hasPresentationBounds && separation == 0f) {
+            return if (run.size == 1) CircleShape else ToolbarContinuousShape
+        }
         val origin = bounds(run).topLeft
         val individualSeparation = run.any { (it.separation.value?.invoke() ?: 0f) != 0f }
         return ToolbarActionShape(listOf(run.map { member ->

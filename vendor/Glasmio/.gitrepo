@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://github.com/NEORUAA/Glasmio.git
 	branch = main
-	commit = 159e8a597bb0fa3dfbe045ceb8c2cbb1ab4043f8
-	parent = 
+	commit = 64b2d00746480c2136a77840cdb849c5505f8b6c
+	parent = f13faa5fc6a652cf3fb5b3ce99d29f7bda7237a1
 	method = merge
 	cmdver = 0.4.9
