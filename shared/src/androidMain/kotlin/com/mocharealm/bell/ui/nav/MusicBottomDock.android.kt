@@ -161,6 +161,7 @@ internal fun MusicBottomDock(
                         mainCompact,
                         CompactBottomControlSize,
                         backdrop = backdrop,
+                        keepCompactAccent = true,
                     )
                 }
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

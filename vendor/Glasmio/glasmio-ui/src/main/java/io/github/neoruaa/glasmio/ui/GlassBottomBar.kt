@@ -270,6 +270,7 @@ fun <T> GlasmioNavigationBar(
     onItemBoundsChanged: ((T, Rect) -> Unit)? = null,
     compactItem: GlasmioTabItem<T>? = null,
     onItemIconBoundsChanged: ((T, Rect) -> Unit)? = null,
+    keepCompactAccent: Boolean = false,
 ) {
     require(items.isNotEmpty())
     val compactState = remember(compactProgress) {
@@ -575,18 +576,20 @@ fun <T> GlasmioNavigationBar(
             selectionPressProgressState,
             colors.accent,
             colors.content,
+            keepCompactAccent,
         ) {
             derivedStateOf {
+                val compact = compactState.value
                 val compactTint = androidx.compose.ui.graphics.lerp(
                     colors.accent,
                     colors.content,
-                    compactState.value,
+                    if (keepCompactAccent) 0f else compact,
                 )
                 ColorFilter.tint(
                     androidx.compose.ui.graphics.lerp(
                         compactTint,
                         colors.content,
-                        selectionPressProgressState.value,
+                        selectionPressProgressState.value * (if (keepCompactAccent) 1f - compact else 1f),
                     ),
                 )
             }
