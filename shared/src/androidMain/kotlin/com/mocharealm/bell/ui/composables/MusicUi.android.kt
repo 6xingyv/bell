@@ -166,6 +166,7 @@ actual fun MusicMenu(
     anchorLabel: String,
     anchorActive: Boolean,
     anchorIconSize: Dp,
+    expandedActions: (@Composable () -> List<MusicMenuAction>)?,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val anchor = rememberGlasmioMenuAnchorState()
@@ -217,7 +218,7 @@ actual fun MusicMenu(
                 }
         }
         if (expanded)
-            MusicNativeMenu(actions, anchor, LocalBlurBackdrop.current, anchorLabel) {
+            MusicNativeMenu(expandedActions?.invoke() ?: actions, anchor, LocalBlurBackdrop.current, anchorLabel) {
                 expanded = false
             }
     }

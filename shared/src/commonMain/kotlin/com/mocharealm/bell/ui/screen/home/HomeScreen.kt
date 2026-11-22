@@ -49,10 +49,24 @@ internal fun HomeScreen(
     val text_recently_added = stringResource(Res.string.recently_added)
     val text_recently_played = stringResource(Res.string.recently_played)
     val text_recommended_for_you = stringResource(Res.string.recommended_for_you)
+    val mixTitle = stringResource(Res.string.mix_title)
+    val mixDescription = stringResource(Res.string.mix_description)
 
     val viewModel = rememberScreenViewModel(model) { HomeViewModel(model) }
     val observedState by viewModel.state.collectAsState()
     val screenState = if (state === model.state.value) observedState else viewModel.snapshot(state)
+    val genreShelves = remember(screenState.genres, screenState.albums) {
+        screenState.genres.asSequence()
+            .mapNotNull { genre ->
+                val matching = screenState.albums.asSequence()
+                    .filter { it.type == "MusicAlbum" && it.genres.any { name -> name.equals(genre.name, true) } }
+                    .take(12)
+                    .toList()
+                matching.takeIf { it.isNotEmpty() }?.let { genre to it }
+            }
+            .take(4)
+            .toList()
+    }
 
     val recommendationList = rememberLazyListState()
     val mixList = rememberLazyListState()
@@ -64,7 +78,7 @@ internal fun HomeScreen(
         onRefresh = { model.accept(BellIntent.PullToRefreshHome) },
     ) {
         if (screenState.recommendations.isNotEmpty())
-            item {
+            item(key = "recommendations", contentType = "recommendations") {
                 Spacer(Modifier.height(24.dp))
                 MusicText(
                     text_music_recommendations,
@@ -140,9 +154,11 @@ internal fun HomeScreen(
                 }
             }
         if (screenState.recentlyPlayed.isNotEmpty())
-            item { MusicShelf(text_recently_played, model, state, screenState.recentlyPlayed) }
+            item(key = "recently-played", contentType = "album-shelf") {
+                MusicShelf(text_recently_played, model, state, screenState.recentlyPlayed)
+            }
         if (screenState.mixes.isNotEmpty())
-            item {
+            item(key = "mixes", contentType = "mixes") {
                 Spacer(Modifier.height(16.dp))
                 MusicText(
                     text_made_for_you,
@@ -202,40 +218,33 @@ internal fun HomeScreen(
                             Spacer(Modifier.height(7.dp))
                             MusicText(
                                 formatBellString(
-                                    stringResource(Res.string.mix_title),
+                                    mixTitle,
                                     mix.seed.name,
                                 ),
                                 16,
                                 weight = FontWeight.SemiBold,
                             )
-                            MusicText(stringResource(Res.string.mix_description), 13, Color.Gray)
+                            MusicText(mixDescription, 13, Color.Gray)
                         }
                     }
                 }
             }
         if (screenState.latest.isNotEmpty())
-            item { MusicShelf(text_recently_added, model, state, screenState.latest) }
-        screenState.genres
-            .map { genre ->
-                genre to
-                    screenState.albums.filter { album ->
-                        album.type == "MusicAlbum" &&
-                            album.genres.any { it.equals(genre.name, true) }
-                    }
+            item(key = "recently-added", contentType = "album-shelf") {
+                MusicShelf(text_recently_added, model, state, screenState.latest)
             }
-            .filter { it.second.isNotEmpty() }
-            .take(4)
-            .forEach { (genre, matching) ->
-                if (matching.isNotEmpty())
-                    item(key = "genre:${genre.id}") {
-                        MusicShelf(genre.name, model, state, matching.take(12))
-                    }
+        genreShelves.forEach { (genre, matching) ->
+            item(key = "genre:${genre.id}", contentType = "album-shelf") {
+                MusicShelf(genre.name, model, state, matching)
             }
+        }
         if (
             screenState.recommendations.isEmpty() &&
                 screenState.latest.isEmpty() &&
                 !screenState.loading
         )
-            item { EmptyMusic(text_no_music, text_home_empty_description) }
+            item(key = "home-empty", contentType = "empty") {
+                EmptyMusic(text_no_music, text_home_empty_description)
+            }
     }
 }

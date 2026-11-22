@@ -115,13 +115,14 @@ expect fun MusicGlass(
 
 @Composable
 expect fun MusicMenu(
-    actions: List<MusicMenuAction>,
+    actions: List<MusicMenuAction> = emptyList(),
     modifier: Modifier = Modifier,
     style: MusicMenuStyle = MusicMenuStyle.Glass,
     anchorIcon: String = "ellipsis",
     anchorLabel: String = stringResource(Res.string.more),
     anchorActive: Boolean = false,
     anchorIconSize: Dp = 22.dp,
+    expandedActions: (@Composable () -> List<MusicMenuAction>)? = null,
 )
 
 @Composable expect fun MusicMenuSource(content: @Composable () -> Unit)

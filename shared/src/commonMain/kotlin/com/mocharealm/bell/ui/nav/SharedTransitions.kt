@@ -49,13 +49,16 @@ internal fun rememberArtworkLink(
             "${if(container)"container"else"artwork"}:${Random.nextLong()}"
         }
     val navigation = LocalArtworkNavigation.current
-    return ArtworkLink(token) {
-        navigation?.let {
-            val origin = ArtworkOrigin(itemId, token)
-            it.origin = origin
-            it.origins[itemId] = origin
+    val latestOpen = rememberUpdatedState(open)
+    return remember(token, itemId, navigation) {
+        ArtworkLink(token) {
+            navigation?.let {
+                val origin = ArtworkOrigin(itemId, token)
+                it.origin = origin
+                it.origins[itemId] = origin
+            }
+            latestOpen.value()
         }
-        open()
     }
 }
 

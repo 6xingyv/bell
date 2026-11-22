@@ -91,6 +91,7 @@ actual fun MusicMenu(
     anchorLabel: String,
     anchorActive: Boolean,
     anchorIconSize: Dp,
+    expandedActions: (@Composable () -> List<MusicMenuAction>)?,
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
@@ -119,7 +120,7 @@ actual fun MusicMenu(
                 )
             }
         DropdownMenu(expanded, { expanded = false }) {
-            actions.forEach { a ->
+            (expandedActions?.invoke() ?: actions).forEach { a ->
                 DropdownMenuItem(
                     text = {
                         Column {
