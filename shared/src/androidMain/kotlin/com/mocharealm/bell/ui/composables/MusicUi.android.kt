@@ -283,77 +283,7 @@ internal fun MusicNativeMenu(
         useAccentIcons = false,
         itemHeight = 40.dp,
         separatorHeight = 21.dp,
-        headerContentHeight = if (quick.isEmpty()) 0.dp else 77.dp,
-        headerContent =
-            if (quick.isEmpty()) null
-            else
-                { execute ->
-                    Row(
-                        Modifier.fillMaxWidth().height(56.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        quick.forEach { action ->
-                            val scope = rememberCoroutineScope()
-                            val highlight = remember(scope) { InteractiveHighlight(scope) }
-                            val shape = ContinuousRoundedRectangle(20.dp)
-                            val color =
-                                (if (action.destructive) colors.destructive else colors.content)
-                                    .copy(alpha = if (action.enabled) 1f else .45f)
-                            Column(
-                                Modifier.weight(1f)
-                                    .height(56.dp)
-                                    .clip(shape)
-                                    .background(
-                                        Color.Black.copy(alpha = .15f * highlight.pressProgress),
-                                        shape,
-                                    )
-                                    .clickable(
-                                        enabled = action.enabled,
-                                        interactionSource = null,
-                                        indication = null,
-                                    ) {
-                                        execute(action.action)
-                                    }
-                                    .then(
-                                        if (action.enabled) highlight.gestureModifier else Modifier
-                                    )
-                                    .padding(horizontal = 4.dp, vertical = 5.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(5.dp),
-                            ) {
-                                Box(
-                                    Modifier.fillMaxWidth().height(22.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    MusicIcon(action.icon, color, 22.dp)
-                                }
-                                androidx.compose.material3.Text(
-                                    action.title,
-                                    style =
-                                        IosTypography.caption1.copy(
-                                            fontSize = 12.sp,
-                                            lineHeight = 18.sp,
-                                            fontWeight =
-                                                androidx.compose.ui.text.font.FontWeight(510),
-                                        ),
-                                    color = color,
-                                    maxLines = 1,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                )
-                            }
-                        }
-                    }
-                    Box(
-                        Modifier.fillMaxWidth().height(21.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        androidx.compose.material3.HorizontalDivider(
-                            Modifier.padding(horizontal = 6.dp),
-                            thickness = 1.dp,
-                            color = colors.content.copy(alpha = .1f),
-                        )
-                    }
-                },
+        headerActions = quick.map(::adapt),
     )
 }
 
