@@ -302,12 +302,6 @@ fun <T> GlasmioNavigationBar(
     val tabsBackdrop = rememberLayerBackdrop()
     val ownBarBackdrop = rememberLayerBackdrop()
     val bottomContact = LocalBottomControlContact.current
-    val sourceBackdrop = if (bottomContact == null) rememberCombinedBackdrop(backdrop, ownBarBackdrop)
-    else rememberCombinedBackdrop(
-        backdrop,
-        bottomContact.materialBackdrop,
-    )
-    // Background and selected-content portals retain separate, unfiltered source planes.
     val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
     val viewConfiguration = LocalViewConfiguration.current
     val navigationViewConfiguration = remember(viewConfiguration) {
@@ -661,6 +655,11 @@ fun <T> GlasmioNavigationBar(
             },
         )
         val sharesContactSurface = contactMember?.sharesSurface == true
+        // Sample the material currently drawn behind the tab, including when contact is inactive.
+        val sourceBackdrop = rememberCombinedBackdrop(
+            backdrop,
+            if (sharesContactSurface && bottomContact != null) bottomContact.materialBackdrop else ownBarBackdrop,
+        )
         val morphLuminanceModifier = remember(
             backdrop, materialContext.luminanceState, morphing, sharesContactSurface, navigationVisualBounds,
             navigationSurfaceSize,
