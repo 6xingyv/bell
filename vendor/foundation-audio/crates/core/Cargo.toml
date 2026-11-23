@@ -1,0 +1,10 @@
+[package]
+name = "engine-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+log = "0.4.29"
+rand = "0.10.0"
+ringbuf = "0.4.8"
+thiserror = "2.0.18"

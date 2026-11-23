@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: LicenseRef-Mocha-1.0 -->
+<resources>
+    <string name="app_name">Bell</string>
+    <string name="grant_network_permission">允许本地网络访问</string>
+    <string name="network_permission_description">访问内网 Jellyfin 需要本地网络权限。</string>
+    <string name="network_permission_title">访问音乐服务器</string>
+    <string name="next_track">下一首</string>
+    <string name="pause">暂停</string>
+    <string name="play">播放</string>
+    <string name="playback_channel">音乐播放</string>
+    <string name="preparing_playback">正在准备播放</string>
+    <string name="previous_track">上一首</string>
+</resources>

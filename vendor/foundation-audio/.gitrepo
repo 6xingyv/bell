@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/6xingyv/foundation.audio.git
+	branch = bell/zig-audio
+	commit = d2e7cf91fdb3dde31b8cd68de2224b9aef578612
+	parent = 891c19626229faa03f8893c4bf7e3e0b3e4d462f
+	method = merge
+	cmdver = 0.4.9
