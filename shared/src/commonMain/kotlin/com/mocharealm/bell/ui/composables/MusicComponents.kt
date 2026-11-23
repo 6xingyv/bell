@@ -161,20 +161,23 @@ internal fun AlbumTile(
     item: Item,
     modifier: Modifier,
     compact: Boolean = false,
+    enabled: Boolean = true,
+    artworkModifier: Modifier = Modifier,
+    showArtist: Boolean = !compact,
 ) {
     val offline = LocalMusicOffline.current
     val link =
         rememberArtworkLink(item.id) {
             model.accept(BellIntent.OpenItem(item, offlineOnly = offline))
         }
-    Column(modifier.clickable(onClick = link.open)) {
+    Column(if (enabled) modifier.clickable(onClick = link.open) else modifier) {
         MusicArtwork(
             model,
             state,
             item,
-            Modifier.fillMaxWidth().aspectRatio(1f),
+            Modifier.fillMaxWidth().aspectRatio(1f).then(artworkModifier),
             9.dp,
-            sharedKey = link.key,
+            sharedKey = link.key.takeIf { enabled },
             shadowElevation = if (compact) 5.dp else 2.dp,
         )
         Spacer(Modifier.height(5.dp))
@@ -185,7 +188,7 @@ internal fun AlbumTile(
             modifier = if (compact) Modifier.fillMaxWidth() else Modifier,
             align = if (compact) TextAlign.Center else TextAlign.Start,
         )
-        if (!compact) MusicText(item.artist, 13, Color(0xFF8A8A8E))
+        if (showArtist) MusicText(item.artist, 13, Color(0xFF8A8A8E))
     }
 }
 

@@ -41,6 +41,7 @@ kotlin {
             implementation(compose.animation)
             implementation(compose.material3)
             implementation(compose.components.resources)
+            implementation("sh.calvin.reorderable:reorderable:3.1.0")
             api("io.ktor:ktor-client-core:3.6.1")
             implementation("io.ktor:ktor-client-content-negotiation:3.6.1")
             implementation("io.ktor:ktor-client-websockets:3.6.1")

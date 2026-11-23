@@ -30,6 +30,7 @@ data class BellState(
     val genres: List<Item> = emptyList(),
     val mixes: List<MusicMix> = emptyList(),
     val pins: List<Item> = emptyList(),
+    val librarySections: List<String> = emptyList(),
     val searchHistory: List<Item> = emptyList(),
     val searchScope: SearchScope = SearchScope.Library,
     val creditsItem: Item? = null,

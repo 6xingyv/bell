@@ -16,13 +16,18 @@ import androidx.compose.ui.text.style.*
 import androidx.compose.ui.unit.*
 import com.mocharealm.bell.domain.model.Item
 import com.mocharealm.bell.resources.*
+import com.mocharealm.bell.ui.BellIntent
 import com.mocharealm.bell.ui.BellState
 import com.mocharealm.bell.ui.BellStore
 import com.mocharealm.bell.ui.composables.AlbumTile
+import com.mocharealm.bell.ui.composables.CoverListRow
 import com.mocharealm.bell.ui.composables.DetailList
-import com.mocharealm.bell.ui.composables.MusicMenu
-import com.mocharealm.bell.ui.composables.MusicMenuAction
-import com.mocharealm.bell.ui.mvi.rememberScreenViewModel
+import com.mocharealm.bell.ui.composables.LocalMusicGridColumns
+import com.mocharealm.bell.ui.composables.MusicArtwork
+import com.mocharealm.bell.ui.nav.rememberArtworkLink
+import com.mocharealm.bell.ui.screen.library.composables.LibraryCollection
+import com.mocharealm.bell.ui.screen.library.composables.libraryCollectionGrid
+import com.mocharealm.bell.ui.utils.LocalMusicOffline
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -31,33 +36,40 @@ internal fun AlbumsScreen(
     state: BellState,
     albums: List<Item>,
     back: () -> Unit,
+    collection: LibraryCollection,
 ) {
     val text_albums = stringResource(Res.string.albums)
-    val text_refresh_library = stringResource(Res.string.refresh_library)
-    val viewModel = rememberScreenViewModel(model) { AlbumsViewModel(model) }
-    val observedState by viewModel.state.collectAsState()
-    val screenState = if (state === model.state.value) observedState else viewModel.snapshot(state)
+    val sorted = collection.sorted(albums)
+    val grid = collection.grid
+    val columns = LocalMusicGridColumns.current
+    val offline = LocalMusicOffline.current
 
-    DetailList(
-        text_albums,
-        back,
-        actions = {
-            MusicMenu(
-                listOf(
-                    MusicMenuAction(text_refresh_library, "repeat") {
-                        viewModel.accept(AlbumsIntent.Refresh())
+    DetailList(text_albums, back) {
+        if (grid) {
+            libraryCollectionGrid(sorted, columns) { item, modifier ->
+                AlbumTile(model, state, item, modifier)
+            }
+        } else {
+            items(sorted, key = { it.id }) { item ->
+                val link =
+                    rememberArtworkLink(item.id) {
+                        model.accept(BellIntent.OpenItem(item, offlineOnly = offline))
                     }
+                CoverListRow(
+                    item.name,
+                    item.artist,
+                    {
+                        MusicArtwork(
+                            model,
+                            state,
+                            item,
+                            Modifier.size(64.dp),
+                            5.dp,
+                            sharedKey = link.key,
+                        )
+                    },
+                    link.open,
                 )
-            )
-        },
-    ) {
-        items(albums.chunked(2)) { row ->
-            Row(
-                Modifier.fillMaxWidth().padding(bottom = 22.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                row.forEach { AlbumTile(model, state, it, Modifier.weight(1f)) }
-                if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
     }

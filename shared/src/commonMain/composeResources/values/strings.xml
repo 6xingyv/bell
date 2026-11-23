@@ -1,6 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- SPDX-License-Identifier: LicenseRef-Mocha-1.0 -->
 <resources>
+    <string name="edit_pins">Edit Pins</string>
+    <string name="edit_sections">Edit Sections</string>
+    <string name="done_editing">Done</string>
+    <string name="reorder_section">Reorder section</string>
+    <string name="library_grid">Grid</string>
+    <string name="library_list">List</string>
+    <string name="library_sort_title">Title</string>
+    <string name="library_sort_date_added">Date Added</string>
+    <string name="library_sort_last_played">Last Played Date</string>
+    <string name="library_sort_updated">Updated Date</string>
+    <string name="library_sort_playlist_type">Playlist Type</string>
+    <string name="library_sort_a_to_z">A–Z</string>
+    <string name="library_sort_z_to_a">Z–A</string>
+    <string name="library_sort_newest">Newest first</string>
+    <string name="library_sort_oldest">Oldest first</string>
     <string name="account">Account</string>
     <string name="add_music">Add music</string>
     <string name="add_to_playlist">Add to playlist</string>

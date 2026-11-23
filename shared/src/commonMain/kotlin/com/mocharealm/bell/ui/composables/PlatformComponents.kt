@@ -75,6 +75,7 @@ data class MusicMenuAction(
     val children: List<MusicMenuAction> = emptyList(),
     val avatarUrl: String? = null,
     val hasAvatar: Boolean = false,
+    val selected: Boolean? = null,
     val action: () -> Unit,
 )
 

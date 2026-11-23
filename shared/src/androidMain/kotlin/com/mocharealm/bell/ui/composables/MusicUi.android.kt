@@ -277,29 +277,34 @@ internal fun MusicNativeMenu(
             subtitle = action.subtitle,
             onClick = action.action,
             children = action.children.map(::adapt),
-            icon = {
-                if (action.hasAvatar)
-                    Box(
-                        Modifier.size(26.dp)
-                            .clip(CircleShape)
-                            .background(colors.content.copy(alpha = .08f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        MusicIcon("music.microphone", colors.secondaryContent, 15.dp)
-                        coil3.compose.AsyncImage(
-                            action.avatarUrl,
-                            action.title,
-                            Modifier.fillMaxSize(),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                        )
+            checked = action.selected,
+            icon =
+                if (action.icon.isEmpty() && !action.hasAvatar) null
+                else {
+                    {
+                        if (action.hasAvatar)
+                            Box(
+                                Modifier.size(20.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.content.copy(alpha = .08f)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                MusicIcon("music.microphone", colors.secondaryContent, 15.dp)
+                                coil3.compose.AsyncImage(
+                                    action.avatarUrl,
+                                    action.title,
+                                    Modifier.fillMaxSize(),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                )
+                            }
+                        else
+                            MusicIcon(
+                                action.icon,
+                                if (action.destructive) colors.destructive else colors.content,
+                                20.dp,
+                            )
                     }
-                else
-                    MusicIcon(
-                        action.icon,
-                        if (action.destructive) colors.destructive else colors.content,
-                        20.dp,
-                    )
-            },
+                },
         )
     val quick = actions.filter { it.quick }
     GlasmioCascadingMenu(

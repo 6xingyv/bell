@@ -44,6 +44,8 @@ data class Item(
     @SerialName("Overview") val overview: String? = null,
     @SerialName("UserData") val userData: UserData = UserData(),
     @SerialName("PrimaryImageAspectRatio") val primaryImageAspectRatio: Float? = null,
+    @SerialName("DateLastMediaAdded") val lastMediaAdded: String? = null,
+    @SerialName("MediaType") val mediaType: String? = null,
 ) {
     val durationMs
         get() = ticks / 10_000

@@ -24,6 +24,7 @@ data class MusicLibrarySnapshot(
     val profile: UserProfile,
     val artists: List<Item>,
     val mixSeeds: List<Item>,
+    val librarySections: List<String>? = null,
 )
 
 class LoadMusicLibrary(
@@ -79,13 +80,17 @@ class LoadMusicLibrary(
         val g = genres.await()
         val rec = picks.await().filter { it.userData.likes != false }
         val prefs = preferences.await()["CustomPrefs"] as? JsonObject
-        suspend fun savedItems(key: String): List<Item> {
-            val ids =
-                optional(emptyList<String>()) {
-                    Json.parseToJsonElement(prefs?.get(key)?.jsonPrimitive?.content ?: "[]")
-                        .jsonArray
-                        .map { it.jsonPrimitive.content }
+        suspend fun savedStrings(key: String): List<String>? =
+            optional(null) {
+                prefs?.get(key)?.jsonPrimitive?.content?.let {
+                    Json.parseToJsonElement(it).jsonArray.map { entry ->
+                        entry.jsonPrimitive.content
+                    }
                 }
+            }
+
+        suspend fun savedItems(key: String): List<Item> {
+            val ids = savedStrings(key).orEmpty()
             val found =
                 optional(emptyList<Item>()) { repository.byIds(session, ids) }.associateBy { it.id }
             return ids.mapNotNull { found[it] }
@@ -109,6 +114,7 @@ class LoadMusicLibrary(
             userProfile,
             ar,
             (r + s.filter { it.userData.favorite }).distinctBy { it.id }.take(3),
+            librarySections = savedStrings("librarySections"),
         )
     }
 

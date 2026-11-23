@@ -81,6 +81,7 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -1111,6 +1112,7 @@ fun GlasmioMenuItem(
     rowHeight: androidx.compose.ui.unit.Dp? = null,
     icon: (@Composable () -> Unit)?,
     trailing: (@Composable () -> Unit)? = null,
+    checked: Boolean? = null,
 ) {
     val scope = rememberCoroutineScope()
     val interactive = LocalIosPopupMenuInteractive.current
@@ -1122,6 +1124,7 @@ fun GlasmioMenuItem(
             .graphicsLayer { alpha = if (enabled) 1f else 0.45f }
             .semantics(mergeDescendants = true) {
                 if (!enabled) disabled()
+                if (checked != null) selected = checked
             }
             .menuDragTarget(interactive && enabled, onClick, Capsule()) { highlight.pressProgress }
             .then(
@@ -1138,14 +1141,22 @@ fun GlasmioMenuItem(
     ) {
         // Fixed-width gutter keeps every title's left edge aligned, whether or not the
         // row shows a checkmark (iOS context-menu alignment).
-        Box(Modifier.width(20.dp).clearAndSetSemantics {}, contentAlignment = Alignment.Center) {
-            if (icon != null) {
-                icon()
-            } else if (systemName != null) {
-                SfIcon(systemName, null, size = 20.dp, tint = iconTint ?: if (destructive) LocalGlassColors.current.destructive else LocalGlassColors.current.content)
+        if (checked != null) {
+            Box(Modifier.width(18.dp).clearAndSetSemantics {}, contentAlignment = Alignment.Center) {
+                if (checked) SfIcon("checkmark", null, size = 15.dp, tint = LocalGlassColors.current.content)
             }
+            Spacer(Modifier.width(8.dp))
         }
-        Spacer(Modifier.width(12.dp))
+        if (checked == null || icon != null || systemName != null) {
+            Box(Modifier.width(20.dp).clearAndSetSemantics {}, contentAlignment = Alignment.Center) {
+                if (icon != null) {
+                    icon()
+                } else if (systemName != null) {
+                    SfIcon(systemName, null, size = 20.dp, tint = iconTint ?: if (destructive) LocalGlassColors.current.destructive else LocalGlassColors.current.content)
+                }
+            }
+            Spacer(Modifier.width(12.dp))
+        }
         Column(Modifier.weight(1f)) {
             Text(
                 title, style = IosTypography.body,
