@@ -30,6 +30,7 @@ expect fun MusicPage(
     underHeader: Boolean = false,
     refreshing: Boolean = false,
     onRefresh: (() -> Unit)? = null,
+    scrollToTopKey: Any? = null,
     content: LazyListScope.() -> Unit,
 )
 

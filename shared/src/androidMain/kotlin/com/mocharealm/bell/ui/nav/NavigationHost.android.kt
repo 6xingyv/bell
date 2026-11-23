@@ -834,10 +834,14 @@ actual fun MusicPage(
     underHeader: Boolean,
     refreshing: Boolean,
     onRefresh: (() -> Unit)?,
+    scrollToTopKey: Any?,
     content: LazyListScope.() -> Unit,
 ) {
     val page = LocalNativeMusicEntry.current
     val list = page?.list ?: rememberLazyListState()
+    LaunchedEffect(scrollToTopKey) {
+        if (scrollToTopKey != null) list.scrollToItem(0)
+    }
     val collapse = rememberGlasmioHeaderCollapse(list)
     val edge = rememberGlasmioHeaderScrollEdge(list)
     val currentCollapse = rememberUpdatedState(collapse)

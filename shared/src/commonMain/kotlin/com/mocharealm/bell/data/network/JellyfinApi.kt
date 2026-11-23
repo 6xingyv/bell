@@ -165,7 +165,10 @@ class JellyfinApi(val client: HttpClient, private val deviceName: () -> String =
                         parameter("Recursive", true)
                         parameter(
                             "Fields",
-                            "Genres,DateCreated,CanDelete,Overview,PrimaryImageAspectRatio",
+                            "Genres,DateCreated,CanDelete,Overview,PrimaryImageAspectRatio,SortName" +
+                                if (type == "Playlist" || type == "MusicAlbum")
+                                    ",DateLastMediaAdded"
+                                else "",
                         )
                         parameter(
                             "SortBy",

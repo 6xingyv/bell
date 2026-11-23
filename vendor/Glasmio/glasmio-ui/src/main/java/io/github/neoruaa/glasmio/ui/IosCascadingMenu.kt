@@ -89,6 +89,7 @@ data class GlasmioCascadingMenuItem(
     val onClick: () -> Unit = {},
     val subtitle: String? = null,
     val icon: (@Composable () -> Unit)? = null,
+    val checked: Boolean? = null,
 )
 
 /**
@@ -343,6 +344,7 @@ fun GlasmioCascadingMenu(
                                 rowHeight = selectedRowHeight,
                                 systemName = selected.systemName,
                                 icon = selected.icon,
+                                checked = selected.checked,
                                 iconTint = if (selected.destructive) colors.destructive else if (useAccentIcons) colors.accent else colors.content,
                                 destructive = selected.destructive,
                                 fontWeight = FontWeight((400 + 200 * appearanceProgress).roundToInt()),
@@ -379,6 +381,7 @@ fun GlasmioCascadingMenu(
                                         rowHeight = menuItemHeight(itemHeight, item.title, item.subtitle),
                                         systemName = item.systemName,
                                         icon = item.icon,
+                                        checked = item.checked,
                                         iconTint = if (item.destructive) colors.destructive else if (useAccentIcons) colors.accent else colors.content,
                                         backdrop = childBackdrop,
                                         enabled = item.enabled,
@@ -432,6 +435,7 @@ fun GlasmioCascadingMenu(
                         rowHeight = itemHeights[index],
                         systemName = item.systemName,
                         icon = item.icon,
+                        checked = item.checked,
                         destructive = item.destructive,
                         backdrop = childBackdrop,
                         iconTint = if (item.destructive) colors.destructive else if (useAccentIcons) colors.accent else colors.content,

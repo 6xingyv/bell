@@ -81,6 +81,10 @@ sealed interface BellIntent {
 
     data class Pin(val item: Item) : BellIntent
 
+    data class RemovePins(val ids: Set<String>) : BellIntent
+
+    data class SetLibrarySections(val sections: List<String>) : BellIntent
+
     data class RememberSearch(val item: Item) : BellIntent
 
     data object ClearSearchHistory : BellIntent

@@ -153,9 +153,10 @@ actual fun MusicGlass(
             shape = ContinuousRoundedRectangle(radius),
             style = GlassSurfaceStyle.Navigation,
             onClick = click,
-            onVisualBoundsChanged = onVisualBoundsChanged?.let { callback ->
-                { bounds, _ -> callback(bounds) }
-            },
+            onVisualBoundsChanged =
+                onVisualBoundsChanged?.let { callback ->
+                    { bounds, _ -> callback(bounds) }
+                },
             content = content,
         )
     }
@@ -183,7 +184,12 @@ actual fun MusicMenu(
         LocalContentColor provides foreground,
     ) {
         Box {
-            Box(Modifier.glasmioMenuAnchor(anchor, transferForeground = style == MusicMenuStyle.Glass)) {
+            Box(
+                Modifier.glasmioMenuAnchor(
+                    anchor,
+                    transferForeground = style == MusicMenuStyle.Glass,
+                )
+            ) {
                 if (style == MusicMenuStyle.Glass)
                     MusicGlass(
                         modifier.size(44.dp).semantics { contentDescription = anchorLabel },
@@ -196,7 +202,8 @@ actual fun MusicMenu(
                     Box(
                         modifier
                             .then(
-                                if (style == MusicMenuStyle.Player) Modifier.musicPlus { triggerAlpha }
+                                if (style == MusicMenuStyle.Player)
+                                    Modifier.musicPlus { triggerAlpha }
                                 else Modifier.graphicsLayer { alpha = triggerAlpha }
                             )
                             .size(if (style == MusicMenuStyle.Player) 32.dp else 44.dp)
@@ -207,7 +214,8 @@ actual fun MusicMenu(
                             .clip(CircleShape)
                             .background(
                                 if (style == MusicMenuStyle.Player) {
-                                    if (anchorActive) Color.White else Color.White.copy(alpha = .12f)
+                                    if (anchorActive) Color.White
+                                    else Color.White.copy(alpha = .12f)
                                 } else Color.Transparent
                             )
                             .clickable { expanded = true },
@@ -233,7 +241,8 @@ actual fun MusicMenu(
                         anchor,
                         LocalBlurBackdrop.current,
                         anchorLabel,
-                        onTriggerAlphaChanged = updateTriggerAlpha.takeUnless { style == MusicMenuStyle.Glass },
+                        onTriggerAlphaChanged =
+                            updateTriggerAlpha.takeUnless { style == MusicMenuStyle.Glass },
                     ) {
                         triggerAlpha = 1f
                         expanded = false
@@ -268,29 +277,34 @@ internal fun MusicNativeMenu(
             subtitle = action.subtitle,
             onClick = action.action,
             children = action.children.map(::adapt),
-            icon = {
-                if (action.hasAvatar)
-                    Box(
-                        Modifier.size(26.dp)
-                            .clip(CircleShape)
-                            .background(colors.content.copy(alpha = .08f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        MusicIcon("music.microphone", colors.secondaryContent, 15.dp)
-                        coil3.compose.AsyncImage(
-                            action.avatarUrl,
-                            action.title,
-                            Modifier.fillMaxSize(),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                        )
+            checked = action.selected,
+            icon =
+                if (action.icon.isEmpty() && !action.hasAvatar) null
+                else {
+                    {
+                        if (action.hasAvatar)
+                            Box(
+                                Modifier.size(20.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.content.copy(alpha = .08f)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                MusicIcon("music.microphone", colors.secondaryContent, 15.dp)
+                                coil3.compose.AsyncImage(
+                                    action.avatarUrl,
+                                    action.title,
+                                    Modifier.fillMaxSize(),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                )
+                            }
+                        else
+                            MusicIcon(
+                                action.icon,
+                                if (action.destructive) colors.destructive else colors.content,
+                                20.dp,
+                            )
                     }
-                else
-                    MusicIcon(
-                        action.icon,
-                        if (action.destructive) colors.destructive else colors.content,
-                        20.dp,
-                    )
-            },
+                },
         )
     val quick = actions.filter { it.quick }
     GlasmioCascadingMenu(

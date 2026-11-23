@@ -67,11 +67,17 @@ actual fun MusicPage(
     underHeader: Boolean,
     refreshing: Boolean,
     onRefresh: (() -> Unit)?,
+    scrollToTopKey: Any?,
     content: LazyListScope.() -> Unit,
 ) {
+    val list = rememberLazyListState()
+    LaunchedEffect(scrollToTopKey) {
+        if (scrollToTopKey != null) list.scrollToItem(0)
+    }
     val pageList: @Composable () -> Unit = {
         LazyColumn(
             Modifier.fillMaxSize(),
+            state = list,
             contentPadding =
                 PaddingValues(
                     start = horizontalInset,

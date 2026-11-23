@@ -110,6 +110,8 @@ class BellStore(
                 openItem(intent.item, intent.rememberSearch, intent.offlineOnly)
             is BellIntent.OpenMix -> openMix(intent.mix)
             is BellIntent.Pin -> pin(intent.item)
+            is BellIntent.RemovePins -> removePins(intent.ids)
+            is BellIntent.SetLibrarySections -> setLibrarySections(intent.sections)
             is BellIntent.RememberSearch -> rememberSearch(intent.item)
             BellIntent.ClearSearchHistory -> clearSearchHistory()
             is BellIntent.SuggestLess -> suggestLess(intent.item)
@@ -807,6 +809,7 @@ class BellStore(
                     recommendations = library.recommendations,
                     genres = library.genres,
                     pins = library.pins,
+                    librarySections = library.librarySections ?: it.librarySections,
                     searchHistory = library.searchHistory,
                     policy = library.profile.policy,
                     userImageTag = library.profile.imageTag,
@@ -1315,11 +1318,34 @@ class BellStore(
         }
     }
 
-    private suspend fun saveItems(session: Session, key: String, items: List<Item>) {
+    private suspend fun saveItems(session: Session, key: String, items: List<Item>) =
+        savePreferenceList(session, key, items.map { it.id })
+
+    private suspend fun savePreferenceList(session: Session, key: String, values: List<String>) {
         repository.savePreferences(
             session,
-            mapOf(key to JsonArray(items.map { JsonPrimitive(it.id) }).toString()),
+            mapOf(key to JsonArray(values.map { JsonPrimitive(it) }).toString()),
         )
+    }
+
+    private fun setLibrarySections(sections: List<String>) = action {
+        preferencesMutex.withLock {
+            val session = state.value.session ?: return@withLock
+            savePreferenceList(session, "librarySections", sections)
+            mutable.update {
+                if (it.session == session) it.copy(librarySections = sections) else it
+            }
+        }
+    }
+
+    private fun removePins(ids: Set<String>) = action {
+        if (ids.isEmpty()) return@action
+        preferencesMutex.withLock {
+            val session = state.value.session ?: return@withLock
+            val pins = state.value.pins.filterNot { it.id in ids }
+            saveItems(session, "pins", pins)
+            mutable.update { if (it.session == session) it.copy(pins = pins) else it }
+        }
     }
 
     private fun pin(item: Item) = action {

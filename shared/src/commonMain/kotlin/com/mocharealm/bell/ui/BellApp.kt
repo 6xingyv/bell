@@ -63,7 +63,10 @@ import com.mocharealm.bell.ui.screen.artists.ArtistsScreen
 import com.mocharealm.bell.ui.screen.credits.CreditsScreen
 import com.mocharealm.bell.ui.screen.downloaded.DownloadedScreen
 import com.mocharealm.bell.ui.screen.home.HomeScreen
+import com.mocharealm.bell.ui.screen.library.LibraryEditing
 import com.mocharealm.bell.ui.screen.library.LibraryScreen
+import com.mocharealm.bell.ui.screen.library.composables.LibraryCollection
+import com.mocharealm.bell.ui.screen.library.composables.LibrarySort
 import com.mocharealm.bell.ui.screen.login.LoginScreen
 import com.mocharealm.bell.ui.screen.player.PlayerIntent
 import com.mocharealm.bell.ui.screen.player.PlayerPanel
@@ -117,6 +120,9 @@ fun BellApp(model: BellStore) {
     val text_account = stringResource(Res.string.account)
     val text_create_playlist = stringResource(Res.string.create_playlist)
     val text_create_station = stringResource(Res.string.create_station)
+    val editPins = stringResource(Res.string.edit_pins)
+    val editSections = stringResource(Res.string.edit_sections)
+    val doneEditing = stringResource(Res.string.done_editing)
     val text_favorite_artist = stringResource(Res.string.favorite_artist)
     val text_more = stringResource(Res.string.more)
     val text_name_ascending = stringResource(Res.string.name_ascending)
@@ -132,6 +138,29 @@ fun BellApp(model: BellStore) {
     val text_suggest_less = stringResource(Res.string.suggest_less)
 
     val state by model.state.collectAsState()
+    val libraryEditing = remember(state.session) { LibraryEditing() }
+    val collections =
+        remember(state.session) {
+            val songs = listOf(LibrarySort.Title, LibrarySort.Added, LibrarySort.Artist)
+            val albums =
+                listOf(
+                    LibrarySort.Title,
+                    LibrarySort.Added,
+                    LibrarySort.LastPlayed,
+                    LibrarySort.Updated,
+                )
+            val playlists = albums + LibrarySort.PlaylistType
+            mapOf(
+                Routes.Albums to LibraryCollection(albums),
+                Routes.DownloadedAlbums to LibraryCollection(albums),
+                Routes.Playlists to LibraryCollection(playlists, LibrarySort.PlaylistType),
+                Routes.DownloadedPlaylists to
+                    LibraryCollection(playlists, LibrarySort.PlaylistType),
+                Routes.Songs to LibraryCollection(songs, allowsGrid = false),
+                Routes.DownloadedSongs to LibraryCollection(songs, allowsGrid = false),
+            )
+        }
+    val collectionMenus = collections.mapValues { (_, collection) -> collection.menu() }
     val navigator = remember { NavigationViewModel() }
     val navigation by navigator.state.collectAsState()
     val tab = navigation.tab
@@ -154,6 +183,9 @@ fun BellApp(model: BellStore) {
             ?: state.album?.let { "album:${it.id}${if(state.albumOffline)":offline"else""}" }
             ?: route
     pageSnapshots[pageKey] = state
+    LaunchedEffect(pageKey, libraryEditing) {
+        if (pageKey != Routes.Library) libraryEditing.close()
+    }
     LaunchedEffect(pageKey, playerMotion.visible, state.session) {
         model.accept(BellIntent.HomeVisibility(pageKey == Routes.Home && !playerMotion.visible))
     }
@@ -264,45 +296,75 @@ fun BellApp(model: BellStore) {
                                                     else -> snapshot.songs
                                                 }
                                             val menu =
-                                                if (
-                                                    key == Routes.Songs ||
-                                                        key == Routes.DownloadedSongs ||
-                                                        key == Routes.FavoriteSongs ||
-                                                        key == Routes.DownloadedFavoriteSongs ||
-                                                        key.startsWith(Routes.ArtistPrefix)
-                                                )
-                                                    listOf(
-                                                        MusicMenuAction(text_play_all, "play") {
-                                                            model.accept(BellIntent.Play(tracks))
-                                                        },
-                                                        MusicMenuAction(text_shuffle, "shuffle") {
-                                                            model.accept(
-                                                                BellIntent.Play(tracks.shuffled())
-                                                            )
-                                                        },
+                                                collectionMenus[key]
+                                                    ?: if (key == Routes.Library)
+                                                        listOf(
+                                                            MusicMenuAction(
+                                                                editPins,
+                                                                "pin",
+                                                                enabled = state.pins.isNotEmpty(),
+                                                            ) {
+                                                                libraryEditing.editPins()
+                                                            },
+                                                            MusicMenuAction(
+                                                                editSections,
+                                                                "checklist",
+                                                            ) {
+                                                                libraryEditing.editSections(
+                                                                    state.librarySections
+                                                                )
+                                                            },
+                                                        )
+                                                    else if (
+                                                        key == Routes.Songs ||
+                                                            key == Routes.DownloadedSongs ||
+                                                            key == Routes.FavoriteSongs ||
+                                                            key == Routes.DownloadedFavoriteSongs ||
+                                                            key.startsWith(Routes.ArtistPrefix)
                                                     )
-                                                else
-                                                    listOf(
-                                                        MusicMenuAction(
-                                                            text_refresh_library,
-                                                            "repeat",
-                                                        ) {
-                                                            model.accept(
-                                                                if (offline)
-                                                                    BellIntent.RefreshOffline
-                                                                else BellIntent.Refresh()
-                                                            )
-                                                        },
-                                                        MusicMenuAction(text_songs, "songs") {
-                                                            navigate(
-                                                                if (offline) Routes.DownloadedSongs
-                                                                else Routes.Songs
-                                                            )
-                                                        },
-                                                        MusicMenuAction(text_account, "artist") {
-                                                            navigate(Routes.Settings)
-                                                        },
-                                                    )
+                                                        listOf(
+                                                            MusicMenuAction(text_play_all, "play") {
+                                                                model.accept(
+                                                                    BellIntent.Play(tracks)
+                                                                )
+                                                            },
+                                                            MusicMenuAction(
+                                                                text_shuffle,
+                                                                "shuffle",
+                                                            ) {
+                                                                model.accept(
+                                                                    BellIntent.Play(
+                                                                        tracks.shuffled()
+                                                                    )
+                                                                )
+                                                            },
+                                                        )
+                                                    else
+                                                        listOf(
+                                                            MusicMenuAction(
+                                                                text_refresh_library,
+                                                                "repeat",
+                                                            ) {
+                                                                model.accept(
+                                                                    if (offline)
+                                                                        BellIntent.RefreshOffline
+                                                                    else BellIntent.Refresh()
+                                                                )
+                                                            },
+                                                            MusicMenuAction(text_songs, "songs") {
+                                                                navigate(
+                                                                    if (offline)
+                                                                        Routes.DownloadedSongs
+                                                                    else Routes.Songs
+                                                                )
+                                                            },
+                                                            MusicMenuAction(
+                                                                text_account,
+                                                                "artist",
+                                                            ) {
+                                                                navigate(Routes.Settings)
+                                                            },
+                                                        )
                                             MusicHeader(
                                                 title =
                                                     credit?.name
@@ -477,6 +539,20 @@ fun BellApp(model: BellStore) {
                                                                     ),
                                                             )
                                                         )
+                                                    else if (
+                                                        key == Routes.Library &&
+                                                            libraryEditing.mode != null
+                                                    )
+                                                        listOf(
+                                                            MusicHeaderAction(
+                                                                "done",
+                                                                "checkmark",
+                                                                doneEditing,
+                                                                {
+                                                                    libraryEditing.finish(model)
+                                                                },
+                                                            )
+                                                        )
                                                     else
                                                         listOfNotNull(
                                                             if (key == Routes.Playlists)
@@ -605,7 +681,10 @@ fun BellApp(model: BellStore) {
                                                         )
                                                         .recordPlayerSurface(
                                                             miniLayer,
-                                                            recordWhenHidden = { playerMotion.showMiniTransitionContent },
+                                                            recordWhenHidden = {
+                                                                playerMotion
+                                                                    .showMiniTransitionContent
+                                                            },
                                                         ) {
                                                             playerMotion.progress == 0f
                                                         }
@@ -692,6 +771,7 @@ fun BellApp(model: BellStore) {
                                                             pageState,
                                                             albums,
                                                             ::navigate,
+                                                            editing = libraryEditing,
                                                         )
                                                     pageRoute == Routes.Downloaded ->
                                                         DownloadedScreen(
@@ -707,6 +787,7 @@ fun BellApp(model: BellStore) {
                                                             if (offline) pageState.albums
                                                             else albums,
                                                             { navigate(Routes.Library) },
+                                                            collections.getValue(pageRoute),
                                                         )
                                                     pageRoute == Routes.Playlists ||
                                                         pageRoute == Routes.DownloadedPlaylists ->
@@ -719,6 +800,7 @@ fun BellApp(model: BellStore) {
                                                                     else Routes.Library
                                                                 )
                                                             },
+                                                            collections.getValue(pageRoute),
                                                             {
                                                                 navigate(
                                                                     if (offline)
@@ -773,7 +855,8 @@ fun BellApp(model: BellStore) {
                                                         SongsScreen(
                                                             model,
                                                             pageState,
-                                                            songs,
+                                                            collections[pageRoute]?.sorted(songs)
+                                                                ?: songs,
                                                             routeTitle(
                                                                 pageRoute.removePrefix(
                                                                     Routes.ArtistPrefix
@@ -817,7 +900,16 @@ fun BellApp(model: BellStore) {
                                         playerLayer,
                                         windowCorners,
                                     )
-                                    MusicPlayingArtworkOverlay(state.session, state.current?.id, playerMotion)
+                                    MusicPlayingArtworkOverlay(
+                                        state.session,
+                                        state.current?.id,
+                                        playerMotion,
+                                    )
+                                }
+                                BellBackHandler(
+                                    pageKey == Routes.Library && libraryEditing.mode != null
+                                ) {
+                                    libraryEditing.finish(model)
                                 }
                                 BellBackHandler(playerMotion.visible) {
                                     playerMotion.settle(false)

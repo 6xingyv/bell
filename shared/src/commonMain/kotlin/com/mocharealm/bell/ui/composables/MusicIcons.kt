@@ -87,6 +87,9 @@ internal fun musicSymbolCodePoint(name: String): Int? =
         "backward.fill" -> 0x10028A
         "character.bubble" -> 0x100330
         "checkmark" -> 0x100185
+        "checkmark.circle.fill" -> 0x100063
+        "checklist" -> 0x100DFE
+        "circle" -> 0x100000
         "chevron.backward" -> 0x100BF6
         "chevron.forward" -> 0x100BFB
         "dot.radiowaves.left.and.right" -> 0x100319
@@ -99,6 +102,7 @@ internal fun musicSymbolCodePoint(name: String): Int? =
         "list.bullet" -> 0x1002F2
         "magnifyingglass" -> 0x1002AB
         "mic" -> 0x1002B0
+        "minus" -> 0x10017D
         "music.note" -> 0x10046A
         "music.note.list" -> 0x10046C
         "pause.fill" -> 0x100286
@@ -114,6 +118,7 @@ internal fun musicSymbolCodePoint(name: String): Int? =
         "speaker.wave.3.fill" -> 0x1002A9
         "square.and.arrow.up" -> 0x100202
         "square.grid.2x2.fill" -> 0x100688
+        "square.grid.2x2" -> 0x1001F7
         "square.stack" -> 0x10040B
         "star" -> 0x1002C2
         "star.fill" -> 0x1002C3
