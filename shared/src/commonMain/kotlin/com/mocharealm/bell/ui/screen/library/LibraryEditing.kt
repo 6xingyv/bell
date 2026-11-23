@@ -52,9 +52,13 @@ internal class LibraryEditing {
     var removedPins by mutableStateOf(emptySet<String>())
         private set
 
+    var pinOrder by mutableStateOf(emptyList<String>())
+        private set
+
     var sections by mutableStateOf(emptyList<LibrarySectionOption>())
 
-    fun editPins() {
+    fun editPins(order: List<String>) {
+        pinOrder = order
         removedPins = emptySet()
         mode = LibraryEditMode.Pins
     }
@@ -68,9 +72,15 @@ internal class LibraryEditing {
         removedPins = removedPins + id
     }
 
+    fun movePin(ids: List<String>, from: Int, to: Int): Boolean {
+        if (from !in ids.indices || to !in ids.indices || from == to) return false
+        pinOrder = ids.toMutableList().apply { add(to, removeAt(from)) }
+        return true
+    }
+
     fun finish(model: BellStore) {
         when (mode) {
-            LibraryEditMode.Pins -> model.accept(BellIntent.RemovePins(removedPins))
+            LibraryEditMode.Pins -> model.accept(BellIntent.EditPins(pinOrder, removedPins))
             LibraryEditMode.Sections ->
                 model.accept(
                     BellIntent.SetLibrarySections(
@@ -87,6 +97,7 @@ internal class LibraryEditing {
     fun close() {
         mode = null
         removedPins = emptySet()
+        pinOrder = emptyList()
         sections = emptyList()
     }
 }

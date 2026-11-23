@@ -5,6 +5,8 @@
     <string name="edit_sections">Edit Sections</string>
     <string name="done_editing">Done</string>
     <string name="reorder_section">Reorder section</string>
+    <string name="move_pin_earlier">Move pin earlier</string>
+    <string name="move_pin_later">Move pin later</string>
     <string name="library_grid">Grid</string>
     <string name="library_list">List</string>
     <string name="library_sort_title">Title</string>

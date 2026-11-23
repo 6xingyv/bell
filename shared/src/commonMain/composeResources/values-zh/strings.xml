@@ -5,6 +5,8 @@
     <string name="edit_sections">编辑分区</string>
     <string name="done_editing">完成</string>
     <string name="reorder_section">调整分区顺序</string>
+    <string name="move_pin_earlier">向前移动固定项目</string>
+    <string name="move_pin_later">向后移动固定项目</string>
     <string name="library_grid">网格</string>
     <string name="library_list">列表</string>
     <string name="library_sort_title">标题</string>

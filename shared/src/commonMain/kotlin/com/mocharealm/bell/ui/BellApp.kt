@@ -304,7 +304,9 @@ fun BellApp(model: BellStore) {
                                                                 "pin",
                                                                 enabled = state.pins.isNotEmpty(),
                                                             ) {
-                                                                libraryEditing.editPins()
+                                                                libraryEditing.editPins(
+                                                                    state.pins.map { it.id }
+                                                                )
                                                             },
                                                             MusicMenuAction(
                                                                 editSections,

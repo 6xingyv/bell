@@ -110,7 +110,7 @@ class BellStore(
                 openItem(intent.item, intent.rememberSearch, intent.offlineOnly)
             is BellIntent.OpenMix -> openMix(intent.mix)
             is BellIntent.Pin -> pin(intent.item)
-            is BellIntent.RemovePins -> removePins(intent.ids)
+            is BellIntent.EditPins -> editPins(intent.order, intent.removed)
             is BellIntent.SetLibrarySections -> setLibrarySections(intent.sections)
             is BellIntent.RememberSearch -> rememberSearch(intent.item)
             BellIntent.ClearSearchHistory -> clearSearchHistory()
@@ -1338,13 +1338,23 @@ class BellStore(
         }
     }
 
-    private fun removePins(ids: Set<String>) = action {
-        if (ids.isEmpty()) return@action
+    private fun editPins(order: List<String>, removed: Set<String>) = action {
         preferencesMutex.withLock {
-            val session = state.value.session ?: return@withLock
-            val pins = state.value.pins.filterNot { it.id in ids }
-            saveItems(session, "pins", pins)
+            val before = state.value
+            val session = before.session ?: return@withLock
+            val byId = before.pins.filterNot { it.id in removed }.associateBy { it.id }
+            val pins = (order + byId.keys).distinct().mapNotNull(byId::get)
+            if (pins == before.pins) return@withLock
             mutable.update { if (it.session == session) it.copy(pins = pins) else it }
+            try {
+                saveItems(session, "pins", pins)
+            } catch (e: Exception) {
+                mutable.update {
+                    if (it.session == session && it.pins == pins) it.copy(pins = before.pins)
+                    else it
+                }
+                throw e
+            }
         }
     }
 

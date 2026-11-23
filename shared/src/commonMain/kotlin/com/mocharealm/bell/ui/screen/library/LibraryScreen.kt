@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: LicenseRef-Mocha-1.0
 package com.mocharealm.bell.ui.screen.library
 
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
-import androidx.compose.ui.draw.*
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.semantics.*
@@ -55,25 +52,6 @@ internal fun LibraryScreen(
     val observedState by viewModel.state.collectAsState()
     val screenState = if (state === model.state.value) observedState else viewModel.snapshot(state)
     val errorText = screenState.error?.displayText()
-    val editingPins = editing?.mode == LibraryEditMode.Pins
-    val visiblePins =
-        if (editingPins && editing != null) {
-            screenState.pins.filterNot { it.id in editing.removedPins }
-        } else screenState.pins
-    val pinWiggle =
-        if (editingPins) {
-            rememberInfiniteTransition(label = "Pin edit")
-                .animateFloat(
-                    initialValue = -1.4f,
-                    targetValue = 1.4f,
-                    animationSpec =
-                        infiniteRepeatable(
-                            tween(126, easing = FastOutSlowInEasing),
-                            RepeatMode.Reverse,
-                        ),
-                    label = "Pin rotation",
-                )
-        } else null
     val sections =
         if (showDownloadedEntry) {
             librarySectionOptions(state.librarySections).filter { it.shown }.map { it.section }
@@ -86,52 +64,17 @@ internal fun LibraryScreen(
             item("edit-sections") { LibrarySectionEditor(editing) }
             return@MusicPage
         }
-        if (visiblePins.isNotEmpty()) {
-            items(visiblePins.chunked(pinGridColumns)) { row ->
+        if (editing?.mode == LibraryEditMode.Pins) {
+            item("edit-pins") {
+                LibraryPinEditor(model, state, screenState.pins, pinGridColumns, editing)
+            }
+        } else if (screenState.pins.isNotEmpty()) {
+            items(screenState.pins.chunked(pinGridColumns)) { row ->
                 Row(
                     Modifier.fillMaxWidth().padding(bottom = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    row.forEachIndexed { index, item ->
-                        key(item.id) {
-                            if (pinWiggle != null && editing != null) {
-                                Box(Modifier.weight(1f)) {
-                                    AlbumTile(
-                                        model,
-                                        state,
-                                        item,
-                                        Modifier.fillMaxWidth(),
-                                        compact = true,
-                                        enabled = false,
-                                        artworkModifier =
-                                            Modifier.graphicsLayer {
-                                                rotationZ =
-                                                    pinWiggle.value *
-                                                        if (index % 2 == 0) 1f else -1f
-                                            },
-                                    )
-                                    Box(
-                                        Modifier.offset(x = (-9).dp, y = (-9).dp)
-                                            .size(28.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0xCC86868B))
-                                            .clickable(role = Role.Button) {
-                                                editing.removePin(item.id)
-                                            },
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        MusicIcon(
-                                            "minus",
-                                            Color.White,
-                                            16.dp,
-                                            stringResource(Res.string.unpin),
-                                        )
-                                    }
-                                }
-                            } else
-                                AlbumTile(model, state, item, Modifier.weight(1f), compact = true)
-                        }
-                    }
+                    row.forEach { AlbumTile(model, state, it, Modifier.weight(1f), compact = true) }
                     repeat(pinGridColumns - row.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
