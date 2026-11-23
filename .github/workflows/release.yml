@@ -9,6 +9,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   packages:
+    permissions:
+      contents: write
     uses: ./.github/workflows/build.yml
     with:
       release: true

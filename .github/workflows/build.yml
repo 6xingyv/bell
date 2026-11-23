@@ -6,7 +6,7 @@ on:
         type: boolean
         default: false
 permissions:
-  contents: read
+  contents: write
 jobs:
   android:
     runs-on: ubuntu-24.04
@@ -16,9 +16,27 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          persist-credentials: false
+          persist-credentials: true
           submodules: recursive
       - uses: ./.github/actions/setup
+      - name: Apply Spotless and rewrite the pushed commit
+        shell: bash
+        run: |
+          bash ./gradlew --no-daemon --max-workers=2 spotlessApply
+          if [[ "$GITHUB_EVENT_NAME" != push && "$GITHUB_EVENT_NAME" != workflow_dispatch || \
+            "$GITHUB_REF_TYPE" != branch ]]; then
+            exit 0
+          fi
+          git add -u
+          if git diff --cached --quiet; then
+            echo 'Spotless made no changes.'
+            exit 0
+          fi
+          git config user.name 'Simon Scholz'
+          git config user.email 'Simon.Sleeeep@outlook.com'
+          git commit --amend --no-edit
+          git push --force-with-lease="refs/heads/${GITHUB_REF_NAME}:${GITHUB_SHA}" \
+            origin "HEAD:refs/heads/${GITHUB_REF_NAME}"
       - uses: mlugg/setup-zig@v2
         with:
           version: '0.17.0'
