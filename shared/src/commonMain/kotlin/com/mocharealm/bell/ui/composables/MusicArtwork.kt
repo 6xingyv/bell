@@ -20,13 +20,18 @@ import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.style.*
 import androidx.compose.ui.unit.*
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import coil3.size.Precision
 import com.mocharealm.bell.domain.model.Item
 import com.mocharealm.bell.resources.*
 import com.mocharealm.bell.ui.BellState
 import com.mocharealm.bell.ui.BellStore
 import com.mocharealm.bell.ui.nav.LocalPlayerArtworkRole
+import com.mocharealm.bell.ui.nav.DecodedPlayerArtwork
 import com.mocharealm.bell.ui.nav.LocalPlayerMotion
 import com.mocharealm.bell.ui.nav.PlayerArtworkRole
+import com.mocharealm.bell.ui.nav.PlayerMotion
 import com.mocharealm.bell.ui.nav.musicCorners
 import com.mocharealm.bell.ui.nav.musicSharedArtwork
 import com.mocharealm.bell.ui.nav.musicSharedContainer
@@ -68,11 +73,12 @@ fun MusicArtwork(
     val dark = LocalMusicDark.current
     val motion = LocalPlayerMotion.current
     val role = LocalPlayerArtworkRole.current.takeIf { sharedKey?.startsWith("playing:") == true }
+    val stablePlayerArtworkSize = role != null
     val playerArtwork =
         if (role != null && motion != null)
             Modifier.onGloballyPositioned { coordinates ->
-                    if (role == PlayerArtworkRole.Mini && motion.progress == 0f) {
-                        motion.thumbnailBounds = coordinates.boundsInRoot()
+                    if (role == PlayerArtworkRole.Mini && item?.id == state.current?.id) {
+                        motion.updateThumbnailBounds(coordinates)
                         motion.miniRadius = radius
                     } else if (role == PlayerArtworkRole.Expanded) {
                         motion.albumArtBounds = coordinates.boundsInRoot()
@@ -119,13 +125,14 @@ fun MusicArtwork(
     val density = LocalDensity.current
     val shape = remember(radius) { musicShape(radius) }
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
+        val displayedWidth =
+            if (wantsCrop && initialRatio != null) maxOf(maxWidth, maxHeight * initialRatio)
+            else maxWidth
         val requestWidth =
-            with(density) {
-                val width =
-                    if (wantsCrop && initialRatio != null) maxOf(maxWidth, maxHeight * initialRatio)
-                    else maxWidth
-                artworkRequestWidth(width.toPx())
-            }
+            if (stablePlayerArtworkSize)
+                playerArtworkRequestWidth(motion, density)
+                    ?: with(density) { artworkRequestWidth(displayedWidth.toPx()) }
+            else with(density) { artworkRequestWidth(displayedWidth.toPx()) }
         val revision = state.mediaRevision
         var source by
             remember(model, session, artItem, requestWidth, offline) {
@@ -146,6 +153,13 @@ fun MusicArtwork(
             }
         val (artWidth, artHeight) =
             if (wantsCrop) maxWidth to maxHeight else fittedMusicArtwork(maxWidth, maxHeight, ratio)
+        val imageContext = LocalPlatformContext.current
+        val request = remember(imageContext, source, stablePlayerArtworkSize, requestWidth) {
+            if (stablePlayerArtworkSize && source != null)
+                ImageRequest.Builder(imageContext).data(source)
+                    .size(requestWidth).precision(Precision.INEXACT).build()
+            else source
+        }
         Box(
             Modifier.size(artWidth, artHeight)
                 .then(playerArtwork)
@@ -168,13 +182,21 @@ fun MusicArtwork(
                 )
             }
             AsyncImage(
-                source,
+                request,
                 artworkDescription,
                 Modifier.fillMaxSize(),
                 contentScale = if (artist) ContentScale.Crop else contentScale,
                 onSuccess = { result ->
                     loaded = true
                     val image = result.result.image
+                    if (motion != null && session != null && item != null && item.id == state.current?.id) {
+                        val artwork = DecodedPlayerArtwork(session, item.id, image)
+                        when (role) {
+                            PlayerArtworkRole.Mini -> motion.miniArtwork = artwork
+                            PlayerArtworkRole.Expanded -> motion.expandedArtwork = artwork
+                            null -> Unit
+                        }
+                    }
                     if (!wantsCrop && initialRatio == null && image.width > 0 && image.height > 0)
                         ratio = image.width.toFloat() / image.height
                 },
@@ -195,6 +217,18 @@ private fun artworkRequestWidth(pixels: Float): Int =
         pixels <= 1200 -> 1200
         else -> 1600
     }
+
+private fun playerArtworkRequestWidth(motion: PlayerMotion?, density: Density): Int? {
+    val bounds = motion?.screenBounds ?: return null
+    if (bounds.width <= 0f || bounds.height <= 0f || density.density <= 0f) return null
+
+    val widthDp = bounds.width / density.density
+    val heightDp = bounds.height / density.density
+    val tabletLandscape = widthDp >= 600f && widthDp > heightDp
+    val maximumWidthDp = if (tabletLandscape) widthDp * .42f - 48f else widthDp - 48f
+    val targetSideDp = minOf(maximumWidthDp.coerceAtLeast(1f), heightDp * .405f)
+    return artworkRequestWidth(targetSideDp * density.density)
+}
 
 internal fun fittedMusicArtwork(width: Dp, height: Dp, aspectRatio: Float): Pair<Dp, Dp> {
     val ratio = aspectRatio.takeIf { it.isFinite() && it > 0f } ?: 1f

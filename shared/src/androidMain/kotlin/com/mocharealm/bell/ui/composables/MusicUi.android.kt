@@ -139,6 +139,7 @@ actual fun MusicGlass(
     modifier: Modifier,
     radius: Dp,
     click: (() -> Unit)?,
+    onVisualBoundsChanged: ((androidx.compose.ui.geometry.Rect) -> Unit)?,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val dark = LocalMusicDark.current
@@ -152,6 +153,9 @@ actual fun MusicGlass(
             shape = ContinuousRoundedRectangle(radius),
             style = GlassSurfaceStyle.Navigation,
             onClick = click,
+            onVisualBoundsChanged = onVisualBoundsChanged?.let { callback ->
+                { bounds, _ -> callback(bounds) }
+            },
             content = content,
         )
     }
@@ -169,6 +173,8 @@ actual fun MusicMenu(
     expandedActions: (@Composable () -> List<MusicMenuAction>)?,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var triggerAlpha by remember { mutableFloatStateOf(1f) }
+    val updateTriggerAlpha = remember { { alpha: Float -> triggerAlpha = alpha } }
     val anchor = rememberGlasmioMenuAnchorState()
     val colors = musicGlassColors()
     val foreground = colors.content
@@ -176,56 +182,65 @@ actual fun MusicMenu(
         LocalGlassColors provides colors,
         LocalContentColor provides foreground,
     ) {
-        Box(Modifier.glasmioMenuAnchor(anchor)) {
-            if (style == MusicMenuStyle.Glass)
-                MusicGlass(
-                    modifier.size(44.dp).semantics { contentDescription = anchorLabel },
-                    22.dp,
-                    { expanded = true },
-                ) {
-                    MusicIcon(anchorIcon, foreground, anchorIconSize)
-                }
-            else
-                Box(
-                    modifier
-                        .then(
-                            if (style == MusicMenuStyle.Player) Modifier.musicPlus() else Modifier
+        Box {
+            Box(Modifier.glasmioMenuAnchor(anchor, transferForeground = style == MusicMenuStyle.Glass)) {
+                if (style == MusicMenuStyle.Glass)
+                    MusicGlass(
+                        modifier.size(44.dp).semantics { contentDescription = anchorLabel },
+                        22.dp,
+                        { expanded = true },
+                    ) {
+                        MusicIcon(anchorIcon, foreground, anchorIconSize)
+                    }
+                else
+                    Box(
+                        modifier
+                            .then(
+                                if (style == MusicMenuStyle.Player) Modifier.musicPlus { triggerAlpha }
+                                else Modifier.graphicsLayer { alpha = triggerAlpha }
+                            )
+                            .size(if (style == MusicMenuStyle.Player) 32.dp else 44.dp)
+                            .semantics {
+                                contentDescription = anchorLabel
+                                selected = anchorActive
+                            }
+                            .clip(CircleShape)
+                            .background(
+                                if (style == MusicMenuStyle.Player) {
+                                    if (anchorActive) Color.White else Color.White.copy(alpha = .12f)
+                                } else Color.Transparent
+                            )
+                            .clickable { expanded = true },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        MusicIcon(
+                            anchorIcon,
+                            if (style == MusicMenuStyle.Player && anchorActive) Color.Black
+                            else foreground,
+                            anchorIconSize,
+                            modifier =
+                                if (style == MusicMenuStyle.Player && anchorActive)
+                                    Modifier.musicKnockout()
+                                else Modifier,
                         )
-                        .size(if (style == MusicMenuStyle.Player) 32.dp else 44.dp)
-                        .semantics {
-                            contentDescription = anchorLabel
-                            selected = anchorActive
-                        }
-                        .clip(CircleShape)
-                        .background(
-                            if (style == MusicMenuStyle.Player) {
-                                if (anchorActive) Color.White else Color.White.copy(alpha = .12f)
-                            } else Color.Transparent
-                        )
-                        .clickable { expanded = true },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    MusicIcon(
-                        anchorIcon,
-                        if (style == MusicMenuStyle.Player && anchorActive) Color.Black
-                        else foreground,
-                        anchorIconSize,
-                        modifier =
-                            if (style == MusicMenuStyle.Player && anchorActive)
-                                Modifier.musicKnockout()
-                            else Modifier,
-                    )
-                }
-        }
-        if (expanded)
-            MusicNativeMenu(
-                expandedActions?.invoke() ?: actions,
-                anchor,
-                LocalBlurBackdrop.current,
-                anchorLabel,
-            ) {
-                expanded = false
+                    }
             }
+            // An open popup must not contribute a second measurable to the caller's Row.
+            if (expanded) {
+                Box(Modifier.matchParentSize()) {
+                    MusicNativeMenu(
+                        expandedActions?.invoke() ?: actions,
+                        anchor,
+                        LocalBlurBackdrop.current,
+                        anchorLabel,
+                        onTriggerAlphaChanged = updateTriggerAlpha.takeUnless { style == MusicMenuStyle.Glass },
+                    ) {
+                        triggerAlpha = 1f
+                        expanded = false
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -236,6 +251,7 @@ internal fun MusicNativeMenu(
     anchor: GlasmioMenuAnchorState,
     backdrop: io.github.neoruaa.glasmio.glass.render.Backdrop,
     title: String = stringResource(Res.string.more),
+    onTriggerAlphaChanged: ((Float) -> Unit)? = null,
     dismiss: () -> Unit,
 ) {
     val text_collapsed = stringResource(Res.string.collapsed)
@@ -285,6 +301,7 @@ internal fun MusicNativeMenu(
         expandedDescription = text_expanded,
         collapsedDescription = text_collapsed,
         onDismiss = dismiss,
+        onTriggerAlphaChanged = onTriggerAlphaChanged,
         backdrop = backdrop,
         useAccentIcons = false,
         itemHeight = 40.dp,
@@ -312,7 +329,7 @@ internal fun RequireMusicMenuRecording() {
 actual fun MusicMenuSource(content: @Composable () -> Unit) {
     val source = rememberLayerBackdrop()
     val owner = remember { MusicMenuRecording() }
-    val popupSource = rememberRasterizedBackdrop(source)
+    val popupSource = rememberRasterizedBackdrop(source, enabled = owner.consumers > 0)
     // No page/player replay while no popup consumes it. With a popup, record once and
     // replay the same live display list, preserving dynamic cross-window sampling.
     val recording =

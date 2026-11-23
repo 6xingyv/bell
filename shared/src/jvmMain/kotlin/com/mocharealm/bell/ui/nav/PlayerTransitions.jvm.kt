@@ -29,7 +29,7 @@ internal actual fun playerPanelShape(progress: Float, corners: PlayerWindowCorne
 }
 
 @Composable
-internal actual fun MusicPlayerGlassLayer(modifier: Modifier, shape: Shape) {
+internal actual fun MusicPlayerGlassLayer(modifier: Modifier, shape: Shape, halfResolution: Boolean) {
     Box(modifier.clip(shape).background(Color.White.copy(alpha = .85f)))
 }
 

@@ -63,6 +63,8 @@ internal val LocalMusicPlayerPlus = staticCompositionLocalOf { false }
 
 internal expect fun Modifier.musicPlus(alpha: Float = 1f): Modifier
 
+internal expect fun Modifier.musicPlus(alpha: () -> Float): Modifier
+
 internal expect fun Modifier.musicKnockout(): Modifier
 
 internal fun DrawScope.drawWithMusicPlus(paint: Paint, draw: DrawScope.() -> Unit) {

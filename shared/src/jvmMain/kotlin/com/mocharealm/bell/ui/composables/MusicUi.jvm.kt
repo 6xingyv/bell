@@ -66,6 +66,7 @@ actual fun MusicGlass(
     modifier: Modifier,
     radius: Dp,
     click: (() -> Unit)?,
+    onVisualBoundsChanged: ((androidx.compose.ui.geometry.Rect) -> Unit)?,
     content: @Composable BoxScope.() -> Unit,
 ) {
     Box(

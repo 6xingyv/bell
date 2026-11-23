@@ -13,8 +13,10 @@ internal actual fun rememberMusicPlusPaint(): Paint = remember {
     Paint().apply { blendMode = BlendMode.Plus }
 }
 
-internal actual fun Modifier.musicPlus(alpha: Float): Modifier = graphicsLayer {
-    this.alpha = alpha
+internal actual fun Modifier.musicPlus(alpha: Float): Modifier = musicPlus { alpha }
+
+internal actual fun Modifier.musicPlus(alpha: () -> Float): Modifier = graphicsLayer {
+    this.alpha = alpha()
     blendMode = BlendMode.Plus
 }
 

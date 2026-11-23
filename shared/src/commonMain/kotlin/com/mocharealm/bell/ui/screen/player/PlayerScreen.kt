@@ -137,7 +137,7 @@ internal fun PlayerScreen(
     var interaction by remember { mutableIntStateOf(0) }
     var touching by remember { mutableStateOf(false) }
     val motion = LocalPlayerMotion.current
-    val chromeAlpha = (((motion?.progress ?: 1f) - .18f) / .32f).coerceIn(0f, 1f)
+    val chromeAlpha = { (((motion?.progress ?: 1f) - .18f) / .32f).coerceIn(0f, 1f) }
     val lyricsList = rememberLyricsLazyListState()
     val textLyricsList = rememberLazyListState()
     val queueList =
@@ -540,7 +540,7 @@ internal fun PlayerScreen(
                                 panel,
                                 animationSpec = tween(220),
                                 modifier =
-                                    Modifier.fillMaxSize().graphicsLayer { alpha = chromeAlpha },
+                                    Modifier.fillMaxSize().graphicsLayer { alpha = chromeAlpha() },
                             ) { mode ->
                                 when (mode) {
                                     PlayerPanel.Cover -> Unit
@@ -889,7 +889,7 @@ internal fun PlayerScreen(
                                             )
                                             .height(metadataHeight)
                                             .graphicsLayer {
-                                                alpha = chromeAlpha
+                                                alpha = chromeAlpha()
                                                 outsets = LayerOutsets(8.dp, 4.dp, 8.dp, 4.dp)
                                             },
                                         verticalAlignment = Alignment.CenterVertically,
@@ -980,7 +980,7 @@ internal fun PlayerScreen(
                                                         (height - timelineTop + 24.dp) * hidden,
                                         )
                                         .size(40.dp)
-                                        .graphicsLayer { alpha = (1f - hidden) * chromeAlpha }
+                                        .graphicsLayer { alpha = (1f - hidden) * chromeAlpha() }
                                 ) {
                                     MusicMenu(
                                         languageMenu,
@@ -1009,7 +1009,7 @@ internal fun PlayerScreen(
                                         .width(controlWidth)
                                         .height(height - timelineTop)
                                         .then(dragModifier)
-                                        .musicPlus(alpha = (1f - hidden) * chromeAlpha)
+                                        .musicPlus { (1f - hidden) * chromeAlpha() }
                                 ) {
                                     MusicPlayerTimeline(
                                         position,
@@ -1128,7 +1128,7 @@ internal fun PlayerScreen(
                                             y = height - bottomInset - 56.dp,
                                         )
                                         .size(40.dp)
-                                        .musicPlus(alpha = (1f - hidden) * chromeAlpha)
+                                        .musicPlus { (1f - hidden) * chromeAlpha() }
                                 ) {
                                     MusicOutputMenu(
                                         model,
@@ -1146,7 +1146,7 @@ internal fun PlayerScreen(
                                         )
                                         .width(rightActionsWidth)
                                         .height(44.dp)
-                                        .musicPlus(alpha = (1f - hidden) * chromeAlpha),
+                                        .musicPlus { (1f - hidden) * chromeAlpha() },
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {

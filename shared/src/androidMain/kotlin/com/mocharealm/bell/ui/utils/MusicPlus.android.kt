@@ -23,17 +23,19 @@ internal actual fun rememberMusicPlusPaint(): Paint {
     }
 }
 
-internal actual fun Modifier.musicPlus(alpha: Float): Modifier = composed {
+internal actual fun Modifier.musicPlus(alpha: Float): Modifier = musicPlus { alpha }
+
+internal actual fun Modifier.musicPlus(alpha: () -> Float): Modifier = composed {
     val paint = rememberMusicPlusPaint()
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
         drawWithContent {
-            paint.alpha = alpha.coerceIn(0f, 1f)
+            paint.alpha = alpha().coerceIn(0f, 1f)
             val contentScope = this
             drawWithMusicPlus(paint) { contentScope.drawContent() }
         }
     } else {
         graphicsLayer {
-            this.alpha = alpha
+            this.alpha = alpha()
             blendMode = BlendMode.Plus
         }
     }

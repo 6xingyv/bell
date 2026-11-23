@@ -182,7 +182,7 @@ fun BellApp(model: BellStore) {
     val share = rememberMusicSharer()
     BellTheme {
         MusicSystemBars(
-            playerMotion.progress > .5f ||
+            playerMotion.pastMidpoint ||
                 creditsDark ||
                 (state.album != null && state.album?.type != "MusicArtist")
         )
@@ -221,6 +221,9 @@ fun BellApp(model: BellStore) {
                                             scaleY = scale
                                             shape = playerPanelShape(1f, windowCorners)
                                             clip = playerMotion.visible
+                                        }
+                                        .onGloballyPositioned {
+                                            playerMotion.navigationCoordinates = it
                                         }
                                 ) {
                                     MusicNavigationHost(
@@ -597,12 +600,13 @@ fun BellApp(model: BellStore) {
                                                 MusicMiniPlayer(
                                                     model,
                                                     state,
-                                                    Modifier.onGloballyPositioned {
-                                                            if (playerMotion.progress == 0f)
-                                                                playerMotion.miniBounds =
-                                                                    it.boundsInRoot()
-                                                        }
-                                                        .recordPlayerSurface(miniLayer) {
+                                                    Modifier.onGloballyPositioned(
+                                                            playerMotion::updateMiniBounds
+                                                        )
+                                                        .recordPlayerSurface(
+                                                            miniLayer,
+                                                            recordWhenHidden = { playerMotion.showMiniTransitionContent },
+                                                        ) {
                                                             playerMotion.progress == 0f
                                                         }
                                                         .then(
@@ -813,13 +817,13 @@ fun BellApp(model: BellStore) {
                                         playerLayer,
                                         windowCorners,
                                     )
-                                    MusicPlayingArtworkOverlay(model, state, playerMotion)
+                                    MusicPlayingArtworkOverlay(state.session, state.current?.id, playerMotion)
                                 }
                                 BellBackHandler(playerMotion.visible) {
                                     playerMotion.settle(false)
                                 }
                                 CompositionLocalProvider(
-                                    LocalMusicDark provides (playerMotion.progress > .5f)
+                                    LocalMusicDark provides playerMotion.pastMidpoint
                                 ) {
                                     MusicLibraryDialog(model, state)
                                 }

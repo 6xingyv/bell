@@ -17,8 +17,11 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import coil3.Image
+import com.mocharealm.bell.domain.model.Session
 import kotlin.random.Random
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -192,6 +195,8 @@ internal enum class PlayerArtworkRole {
     Expanded,
 }
 
+internal data class DecodedPlayerArtwork(val session: Session, val itemId: String, val image: Image)
+
 internal val LocalPlayerArtworkRole = staticCompositionLocalOf<PlayerArtworkRole?> { null }
 internal val LocalPlayerMotion = staticCompositionLocalOf<PlayerMotion?> { null }
 
@@ -204,7 +209,8 @@ internal class MusicPlayerBackdropHost {
 internal val LocalMusicPlayerBackdropHost =
     staticCompositionLocalOf<MusicPlayerBackdropHost?> { null }
 
-@Composable internal expect fun MusicPlayerGlassLayer(modifier: Modifier, shape: Shape)
+@Composable
+internal expect fun MusicPlayerGlassLayer(modifier: Modifier, shape: Shape, halfResolution: Boolean)
 
 /** The reference's normalized spring drives geometry, composition and the independent cover. */
 internal class PlayerMotion(private val scope: CoroutineScope) {
@@ -227,16 +233,69 @@ internal class PlayerMotion(private val scope: CoroutineScope) {
         private set
 
     var miniBounds by mutableStateOf<Rect?>(null)
-    var thumbnailBounds by mutableStateOf<Rect?>(null)
+    var thumbnailInMini by mutableStateOf<Rect?>(null)
+        private set
+    var miniContentCoordinates: LayoutCoordinates? = null
     var albumArtBounds by mutableStateOf<Rect?>(null)
     var miniRadius by mutableStateOf(5.dp)
     var albumArtRadius by mutableStateOf(9.dp)
     var screenBounds by mutableStateOf(Rect.Zero)
-    val visible
-        get() = expanded || dragging || progress > 0f
+    var navigationCoordinates: LayoutCoordinates? = null
+    var miniGlassSize = IntSize.Zero
+    private var miniGlassVisualBounds by mutableStateOf<Rect?>(null)
+    private var openingGlassOffsets by mutableStateOf(Rect.Zero)
+    private var returningToMiniAt by mutableFloatStateOf(0f)
+    private var returnGlassOffsets by mutableStateOf(Rect.Zero)
 
-    val inProgress
-        get() = progress > 0f && progress < 1f
+    fun updateMiniBounds(coordinates: LayoutCoordinates) {
+        val navigation = navigationCoordinates?.takeIf { it.isAttached } ?: return
+        // The navigation layer scales during the transition. Measure the dock before that scale.
+        miniBounds = navigation.localBoundingBoxOf(coordinates, clipBounds = false)
+            .translate(screenBounds.topLeft)
+    }
+
+    fun updateThumbnailBounds(coordinates: LayoutCoordinates) {
+        val content = miniContentCoordinates?.takeIf { it.isAttached } ?: return
+        thumbnailInMini = content.localBoundingBoxOf(coordinates, clipBounds = false)
+    }
+
+    fun updateMiniGlassVisualBounds(bounds: Rect) {
+        miniGlassVisualBounds = bounds
+    }
+
+    private fun miniGlassOffsets(): Rect {
+        val visual = miniGlassVisualBounds ?: return Rect.Zero
+        val size = miniGlassSize
+        if (size == IntSize.Zero) return Rect.Zero
+        return Rect(visual.left, visual.top, visual.right - size.width, visual.bottom - size.height)
+    }
+
+    fun transitionGlassOffsets(progress: Float): Rect {
+        val weight = 1f - smooth(progress / .18f)
+        if (weight == 0f) return Rect.Zero
+        val returning = returningToMiniAt
+        if (returning <= 0f) return openingGlassOffsets.scaled(weight)
+        val handoff = smooth(progress / returning)
+        val live = miniGlassOffsets().scaled(weight)
+        val startWeight = 1f - smooth(returning / .18f)
+        val start = if (weight < startWeight) returnGlassOffsets.scaled(weight / startWeight)
+            else returnGlassOffsets
+        return Rect(
+            blend(live.left, start.left, handoff),
+            blend(live.top, start.top, handoff),
+            blend(live.right, start.right, handoff),
+            blend(live.bottom, start.bottom, handoff),
+        )
+    }
+
+    private fun Rect.scaled(weight: Float): Rect =
+        Rect(left * weight, top * weight, right * weight, bottom * weight)
+    val visible by derivedStateOf(structuralEqualityPolicy()) { expanded || dragging || progress > 0f }
+    val inProgress by derivedStateOf(structuralEqualityPolicy()) { progress > 0f && progress < 1f }
+    val pastMidpoint by derivedStateOf(structuralEqualityPolicy()) { progress > .5f }
+    val showMiniTransitionContent by derivedStateOf(structuralEqualityPolicy()) { progress < .18f }
+    var miniArtwork by mutableStateOf<DecodedPlayerArtwork?>(null)
+    var expandedArtwork by mutableStateOf<DecodedPlayerArtwork?>(null)
 
     val progress
         get() = animation.value
@@ -269,12 +328,24 @@ internal class PlayerMotion(private val scope: CoroutineScope) {
     }
 
     fun settle(value: Boolean, velocity: Float = 0f) {
+        if (value && progress == 0f && !dragging) {
+            openingGlassOffsets = miniGlassOffsets()
+            returningToMiniAt = 0f
+        } else if (!value) {
+            returnGlassOffsets = transitionGlassOffsets(progress)
+            returningToMiniAt = minOf(progress, .18f)
+        }
         expanded = value
         dragging = false
         input.trySend(Input.Settle(value, velocity))
     }
 
     fun begin() {
+        if (progress == 0f) {
+            openingGlassOffsets = miniGlassOffsets()
+            returningToMiniAt = 0f
+        }
+        if (progress >= .18f) prepareGlassReturn()
         dragOriginExpanded = expanded || progress > .5f
         fingerProgress = progress
         dragging = true
@@ -283,7 +354,13 @@ internal class PlayerMotion(private val scope: CoroutineScope) {
 
     fun drag(delta: Float, height: Float) {
         fingerProgress = (fingerProgress - delta / height.coerceAtLeast(1f)).coerceIn(0f, 1f)
+        if (fingerProgress >= .18f) prepareGlassReturn()
         input.trySend(Input.Drag(fingerProgress))
+    }
+
+    private fun prepareGlassReturn() {
+        returnGlassOffsets = Rect.Zero
+        returningToMiniAt = .18f
     }
 
     fun end(velocity: Float, velocityThreshold: Float) {
@@ -322,14 +399,24 @@ internal fun PlayerMotion.panelBounds(): Rect {
     val top = blend(small.top, screenBounds.top, p)
     val width = blend(small.width, screenBounds.width, terminal)
     val height = blend(small.height, screenBounds.height, terminal)
-    return Rect(left, top, left + width, top + height)
+    val glass = transitionGlassOffsets(p)
+    return Rect(left + glass.left, top + glass.top, left + width + glass.right, top + height + glass.bottom)
 }
 
 internal fun PlayerMotion.coverBounds(): Rect? {
-    val small = thumbnailBounds ?: return null
+    val thumbnail = thumbnailInMini ?: return null
+    val mini = miniBounds ?: return null
+    val glass = transitionGlassOffsets(progress)
+    val scaleX = (mini.width + glass.right - glass.left) / mini.width.coerceAtLeast(1f)
+    val scaleY = (mini.height + glass.bottom - glass.top) / mini.height.coerceAtLeast(1f)
+    val small = Rect(
+        mini.left + glass.left + thumbnail.left * scaleX,
+        mini.top + glass.top + thumbnail.top * scaleY,
+        mini.left + glass.left + thumbnail.right * scaleX,
+        mini.top + glass.top + thumbnail.bottom * scaleY,
+    )
     val large = albumArtBounds ?: return null
     fun sheetCover(p: Float): Rect {
-        val mini = miniBounds ?: screenBounds
         val amount = smooth(p / .45f)
         val left = blend(mini.left, screenBounds.left, amount)
         val top = blend(mini.top, screenBounds.top, p)

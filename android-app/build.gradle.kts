@@ -29,7 +29,7 @@ android {
         applicationId = "com.mocharealm.bell"
         minSdk = 33
         targetSdk = 37
-        versionCode = providers.gradleProperty("versionCode").orElse("1").get().toInt()
+        versionCode = providers.gradleProperty("versionCode").orElse("4").get().toInt()
         versionName = providers.gradleProperty("releaseVersion").orElse("0.1.0").get()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk {
@@ -115,6 +115,7 @@ dependencies {
     implementation("io.ktor:ktor-client-okhttp:3.6.1")
     implementation("io.insert-koin:koin-core:4.2.2")
     implementation("io.coil-kt.coil3:coil-compose:3.6.3")
+    implementation("io.coil-kt.coil3:coil-network-ktor3:3.6.3")
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
     androidTestImplementation("androidx.test:core:1.7.0")

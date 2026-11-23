@@ -12,6 +12,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.style.*
 import androidx.compose.ui.unit.*
@@ -29,6 +31,7 @@ import com.mocharealm.bell.ui.composables.MusicMenu
 import com.mocharealm.bell.ui.composables.MusicMenuStyle
 import com.mocharealm.bell.ui.composables.rememberMusicSharer
 import com.mocharealm.bell.ui.composables.songMenu
+import com.mocharealm.bell.ui.nav.LocalPlayerMotion
 import com.mocharealm.bell.ui.screen.player.PlayerPanel
 import com.mocharealm.bell.ui.utils.LocalMusicOffline
 import com.mocharealm.bell.ui.utils.rememberMenuStrings
@@ -60,10 +63,18 @@ internal fun MusicMiniPlayer(
     val activeColor = MusicAccent
     val menuStrings = rememberMenuStrings()
     val share = rememberMusicSharer()
-    MusicGlass(modifier.fillMaxWidth().height(48.dp), 24.dp, open) {
+    val motion = LocalPlayerMotion.current
+    val reportVisualBounds = remember(motion) { motion?.let { it::updateMiniGlassVisualBounds } }
+    MusicGlass(
+        modifier.fillMaxWidth().height(48.dp).onSizeChanged { motion?.miniGlassSize = it },
+        24.dp,
+        open,
+        reportVisualBounds,
+    ) {
         Row(
             Modifier.fillMaxSize()
                 .then(transitionContent)
+                .onGloballyPositioned { motion?.miniContentCoordinates = it }
                 .padding(start = if (tabletMode) 8.dp else 16.dp, end = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

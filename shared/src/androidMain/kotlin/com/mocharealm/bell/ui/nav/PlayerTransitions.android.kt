@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.*
@@ -18,22 +19,50 @@ import io.github.neoruaa.glasmio.glass.*
 import io.github.neoruaa.glasmio.ui.*
 
 @Composable
-internal actual fun MusicPlayerGlassLayer(modifier: Modifier, shape: Shape) {
+internal actual fun MusicPlayerGlassLayer(modifier: Modifier, shape: Shape, halfResolution: Boolean) {
     val source =
         LocalMusicPlayerBackdropHost.current?.source as? NativeMusicPlayerBackdrop ?: return
+    val density = LocalDensity.current
+    val glassDensity =
+        remember(density, halfResolution) {
+            if (halfResolution) Density(density.density * .5f, density.fontScale) else density
+        }
+    val glassModifier =
+        if (halfResolution) modifier.halfResolutionGlassLayer() else modifier
     CompositionLocalProvider(
         LocalGlassColors provides defaultGlassColors(source.dark, MusicAccent),
         LocalBottomControlContact provides null,
         LocalIosToolbarActionGroup provides null,
+        LocalDensity provides glassDensity,
     ) {
         GlassSurface(
-            modifier = modifier,
+            modifier = glassModifier,
             shape = shape,
             style = GlassSurfaceStyle.Navigation,
             backdrop = source.backdrop,
+            // Large panels already capture at quarter scale. Keep that source resolution
+            // while reducing the optical output and its full-resolution intermediate layers.
+            backdropSamplingScale = if (halfResolution) .5f else null,
         ) {}
     }
 }
+
+private fun Modifier.halfResolutionGlassLayer(): Modifier =
+    layout { measurable, constraints ->
+        val width = constraints.maxWidth
+        val height = constraints.maxHeight
+        val placeable = measurable.measure(
+            Constraints.fixed((width + 1) / 2, (height + 1) / 2)
+        )
+        layout(width, height) {
+            placeable.placeWithLayer(0, 0) {
+                transformOrigin = TransformOrigin(0f, 0f)
+                scaleX = width / placeable.width.coerceAtLeast(1).toFloat()
+                scaleY = height / placeable.height.coerceAtLeast(1).toFloat()
+                compositingStrategy = CompositingStrategy.Offscreen
+            }
+        }
+    }
 
 @Composable
 internal actual fun playerWindowCorners(): PlayerWindowCorners {
