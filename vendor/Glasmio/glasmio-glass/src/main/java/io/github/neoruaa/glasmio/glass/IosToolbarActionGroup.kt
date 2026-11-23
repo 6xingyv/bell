@@ -333,16 +333,26 @@ fun Modifier.glasmioMenuAnchor(state: GlasmioMenuAnchorState): Modifier =
 fun Modifier.glasmioMenuAnchor(
     state: GlasmioMenuAnchorState,
     onOpenMenu: (() -> Unit)?,
+): Modifier = glasmioMenuAnchor(state, transferForeground = true, onOpenMenu = onOpenMenu)
+
+/** Set [transferForeground] to false to use the trigger's position and keep it drawn in place. */
+@Composable
+fun Modifier.glasmioMenuAnchor(
+    state: GlasmioMenuAnchorState,
+    transferForeground: Boolean,
+    onOpenMenu: (() -> Unit)? = null,
 ): Modifier {
-    val group = LocalIosToolbarActionGroup.current
+    val group = LocalIosToolbarActionGroup.current.takeIf { transferForeground }
+    LaunchedEffect(state) { withContext(Dispatchers.Default) { state.prewarmShaders() } }
+    val anchor = onGloballyPositioned { state.bind(group, it.boundsInWindow()) }
+        .then(if (onOpenMenu != null) Modifier.glasmioMenuGesture(state, onOpenMenu) else Modifier)
+    if (!transferForeground) return anchor
+
     val contentLayer = rememberGraphicsLayer()
     DisposableEffect(state, contentLayer) {
         onDispose { state.clearStandaloneContent(contentLayer) }
     }
-    LaunchedEffect(state) { withContext(Dispatchers.Default) { state.prewarmShaders() } }
-    return onGloballyPositioned { state.bind(group, it.boundsInWindow()) }
-        .then(if (onOpenMenu != null) Modifier.glasmioMenuGesture(state, onOpenMenu) else Modifier)
-        .modifierLocalProvider(ModifierLocalMenuAnchor) { state }
+    return anchor.modifierLocalProvider(ModifierLocalMenuAnchor) { state }
         .graphicsLayer {
             // The live anchor is hidden only after its foreground has a portal owner.
             alpha = if (state.isAcquired && !state.isGroupedSource && state.portal != null) 0f else 1f

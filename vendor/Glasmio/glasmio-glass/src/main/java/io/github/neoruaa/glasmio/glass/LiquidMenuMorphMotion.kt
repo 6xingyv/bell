@@ -61,6 +61,7 @@ class LiquidMenuMorphMotion {
     private var source = Rect.Zero
     internal val sourceBounds: Rect get() = source
     private var through = Rect.Zero
+    private var stationarySource = false
     private var destination = Rect.Zero
     private var destinationRadius = 0f
     private var portalZoomReferenceHeight = 0f
@@ -102,12 +103,20 @@ class LiquidMenuMorphMotion {
         kick, sourceKick, content, sourceContent, lens, portalBlur, smoothing,
     )
 
-    fun initialize(source: Rect, target: Rect, targetRadius: Float, density: Float = 1f, through: Rect = source) {
+    fun initialize(
+        source: Rect,
+        target: Rect,
+        targetRadius: Float,
+        density: Float = 1f,
+        through: Rect = source,
+        stationarySource: Boolean = false,
+    ) {
         require(source.isFiniteAndPositive() && target.isFiniteAndPositive() && through.isFiniteAndPositive())
         require(targetRadius.isFinite() && targetRadius >= 0f)
         require(density.isFinite() && density > 0f)
         this.source = source
         this.through = through
+        this.stationarySource = stationarySource
         destination = target
         destinationRadius = targetRadius.coerceAtMost(target.size.minDimension / 2f)
         portalZoomReferenceHeight = target.height
@@ -229,7 +238,7 @@ class LiquidMenuMorphMotion {
     }
 
     private fun configureExpansionGeometry() {
-        val pivot = collapsedPivot()
+        val pivot = if (stationarySource) source.center else collapsedPivot()
         sourceX.target(pivot.x, EjectSpring)
         sourceY.target(pivot.y, EjectSpring)
         sourceWidth.target(source.size.minDimension, CollapseSpring)
@@ -343,7 +352,7 @@ class LiquidMenuMorphMotion {
         sourceHeight.target(source.height, AbsorbSpring)
         sourceScale.target(1f, AbsorbSpring)
         kick.target(if (closingKickReleased) 0f else kickAmount(-80f), KickSpring)
-        sourceKick.target(if (sourceKickReleased) 0f else kickAmount(40f), KickSpring)
+        sourceKick.target(if (stationarySource || sourceKickReleased) 0f else kickAmount(40f), KickSpring)
         content.target(0f, AbsorbSpring)
         sourceContent.target(1f, AbsorbSpring)
         smoothing.target(if (smoothingReleased) 0f else 20f * density,
@@ -377,10 +386,13 @@ class LiquidMenuMorphMotion {
         (destination.width * 0.5f * through.height / maxOf(destination.width, destination.height))
             .coerceAtLeast(1f)
 
-    private fun initialIncomingCenter(): Offset = alignedCenter(Offset(
-        boundedCenter(through.center.x, source.left, source.right, through.width / 2f),
-        boundedCenter(through.center.y, source.top, source.bottom, through.height / 2f),
-    ), destination.width)
+    private fun initialIncomingCenter(): Offset {
+        if (stationarySource) return source.center
+        return alignedCenter(Offset(
+            boundedCenter(through.center.x, source.left, source.right, through.width / 2f),
+            boundedCenter(through.center.y, source.top, source.bottom, through.height / 2f),
+        ), destination.width)
+    }
 
     private fun boundedCenter(value: Float, start: Float, end: Float, inset: Float): Float {
         val minimum = start + inset

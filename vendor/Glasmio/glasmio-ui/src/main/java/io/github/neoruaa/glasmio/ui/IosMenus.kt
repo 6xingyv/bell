@@ -385,7 +385,7 @@ fun GlasmioContextMenu(
                 interactiveHighlight.pressProgress == 0f && interactiveHighlight.offset == Offset.Zero &&
                 panel?.isSettled != false
         }
-        rememberSettledBackdrop(backdrop, host.view, host.isSettled)
+        rememberSettledBackdrop(backdrop, host.view, host.isSettled, refreshWhileMoving = true)
     } else backdrop
     val samplingBackdrop = if (appearance.usesBackdrop) {
         rememberStationaryBackdrop(popupBackdrop, samplingCoordinatesProvider)
@@ -675,6 +675,7 @@ fun GlasmioMenu(
                         with(density) { 34.dp.toPx() },
                         density.density,
                         through = sourceAnchor.previewBounds?.translate(windowScreenOffset) ?: morphSourceBounds!!,
+                        stationarySource = !sourceAnchor.sourceHasGlassBackground,
                     )
                 }
                 // Reopening during collapse retains the live contour and every velocity.

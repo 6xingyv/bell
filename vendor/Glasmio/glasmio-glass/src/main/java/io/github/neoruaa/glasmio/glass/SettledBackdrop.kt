@@ -27,16 +27,28 @@ fun rememberSettledBackdrop(
     backdrop: Backdrop,
     sourceView: View,
     isSettled: () -> Boolean,
+): SettledBackdrop = rememberSettledBackdrop(backdrop, sourceView, isSettled, refreshWhileMoving = false)
+
+/** Menus can keep sampling their presenting window while their own geometry moves. */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+@Composable
+fun rememberSettledBackdrop(
+    backdrop: Backdrop,
+    sourceView: View,
+    isSettled: () -> Boolean,
+    refreshWhileMoving: Boolean,
 ): SettledBackdrop {
     val source = rememberCrossWindowBackdrop(backdrop)
     val currentGate = rememberUpdatedState(isSettled)
-    val settled = remember(source) { SettledBackdrop(source) { currentGate.value() } }
+    val settled = remember(source, refreshWhileMoving) {
+        SettledBackdrop(source, refreshWhileMoving) { currentGate.value() }
+    }
     val consumerView = LocalView.current
     DisposableEffect(settled, sourceView, consumerView) {
         onDispose(settled.observe(sourceView, consumerView))
     }
     LaunchedEffect(settled) {
-        snapshotFlow { settled.isSettled }.collect { if (it) settled.refresh() }
+        snapshotFlow { settled.canRefresh }.collect { if (it) settled.refresh() }
     }
     return settled
 }
@@ -44,6 +56,7 @@ fun rememberSettledBackdrop(
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 class SettledBackdrop internal constructor(
     private val source: Backdrop,
+    internal val refreshWhileMoving: Boolean,
     private val settled: () -> Boolean,
 ) : ViewportBackdrop {
     private val version = mutableIntStateOf(0)
@@ -51,6 +64,7 @@ class SettledBackdrop internal constructor(
     private var observerSnapshot = emptyList<() -> Unit>()
 
     val isSettled: Boolean get() = settled()
+    internal val canRefresh: Boolean get() = refreshWhileMoving || isSettled
     val revision: Int get() = version.intValue
     override val isCoordinatesDependent: Boolean get() = source.isCoordinatesDependent
     internal fun hasLayerBlockIndependentSource(): Boolean = source.hasBuiltInLayerBlockIndependentSource()
@@ -61,7 +75,7 @@ class SettledBackdrop internal constructor(
     }
 
     internal fun refresh() {
-        if (!isSettled) return
+        if (!canRefresh) return
         version.intValue++
         observerSnapshot.forEach { it() }
     }
@@ -74,7 +88,7 @@ class SettledBackdrop internal constructor(
         }
         fun requestRefresh() {
             // Source draw observers must not subscribe to the consumer's animation state.
-            if (pending || !Snapshot.withoutReadObservation { isSettled }) return
+            if (pending || !Snapshot.withoutReadObservation { canRefresh }) return
             pending = true
             sourceView.postOnAnimation(refreshNextFrame)
         }

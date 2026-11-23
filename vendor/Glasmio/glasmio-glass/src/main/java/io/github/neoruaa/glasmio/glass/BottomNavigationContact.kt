@@ -425,6 +425,9 @@ class BottomControlContact(
     private var cachedNativeSmoothness: Float? = null
     private var cachedContactShape: LiquidContactShape? = null
     private var cachedSurface: BottomContactSurface? = null
+    private var cachedUnion: NavigationContactUnion? = null
+    private var cachedUnionParticipants: List<BottomControlContactMember>? = null
+    private var cachedUnionShape: Shape? = null
     val capturesLensSource = derivedStateOf(structuralEqualityPolicy()) { members.any { it.needsLensSource() } }
 
     val surface = derivedStateOf(referentialEqualityPolicy()) { createSurface() }
@@ -503,7 +506,15 @@ class BottomControlContact(
                 nativeSmoothness ?: contactDistance,
             )
             cachedSurface?.takeIf { it.bounds == bounds && it.union == union && it.participants == participants }?.let { return it }
-            val shape = union.shape() ?: return null
+            val shape = if (cachedUnion == union && cachedUnionParticipants == participants) {
+                cachedUnionShape
+            } else {
+                null
+            } ?: union.shape()?.also {
+                cachedUnion = union
+                cachedUnionParticipants = participants
+                cachedUnionShape = it
+            } ?: return null
             return BottomContactSurface(bounds, shape, participants, union).also { cachedSurface = it }
         }
         val progress = mergedProgress?.value?.coerceIn(0f, 1f)

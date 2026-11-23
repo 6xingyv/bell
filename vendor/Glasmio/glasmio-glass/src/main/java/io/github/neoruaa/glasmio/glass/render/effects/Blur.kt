@@ -13,6 +13,7 @@ import androidx.annotation.FloatRange
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.TileMode
 import io.github.neoruaa.glasmio.glass.render.BackdropEffectScope
+import io.github.neoruaa.glasmio.glass.render.BackdropEffectScopeImpl
 import io.github.neoruaa.glasmio.glass.render.isRenderEffectSupported
 
 fun BackdropEffectScope.blur(
@@ -28,11 +29,24 @@ fun BackdropEffectScope.blur(
         }
     }
 
-    renderEffect =
-        BlurEffect(
-            renderEffect,
-            radius,
-            radius,
-            edgeTreatment
-        )
+    val input = renderEffect
+    val scope = this as? BackdropEffectScopeImpl
+    val cached = scope?.takeIf {
+        it.cachedBlurInputKnown &&
+            it.cachedBlurInput === input &&
+            it.cachedBlurRadiusX == radius &&
+            it.cachedBlurRadiusY == radius &&
+            it.cachedBlurTileMode == edgeTreatment
+    }?.cachedBlurEffect
+
+    renderEffect = cached ?: BlurEffect(input, radius, radius, edgeTreatment).also { effect ->
+        scope?.let {
+            it.cachedBlurInput = input
+            it.cachedBlurInputKnown = true
+            it.cachedBlurRadiusX = radius
+            it.cachedBlurRadiusY = radius
+            it.cachedBlurTileMode = edgeTreatment
+            it.cachedBlurEffect = effect
+        }
+    }
 }

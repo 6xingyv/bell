@@ -147,7 +147,6 @@ internal class NavigationContactField {
     private fun build(edges: FloatArray, grid: Grid) {
         if (LiquidMenuNativeField.buildContact(edges, grid.origin.x, grid.origin.y, grid.step,
                 grid.width, grid.height, grid.band, grid.rgba)) {
-            finishExteriorCells(grid)
             return
         }
         val width = grid.width
@@ -226,16 +225,7 @@ internal class NavigationContactField {
                 rgba[output + 2] /= distance
             }
             rgba[output + 3] = 1f
-        }
-        finishExteriorCells(grid)
-    }
-
-    private fun finishExteriorCells(grid: Grid) {
-        val rgba = grid.rgba
-        for (output in rgba.indices step 4) {
-            // The bounded edge raster leaves both normal channels zero only when no
-            // segment came within its reach. Its old negative sentinel was safe solely
-            // behind a shape clip; it must never become visible opaque glass in a gap.
+            // Preserve empty exterior cells without another full-grid pass.
             if (rgba[output] < 0f && rgba[output + 1] == 0f && rgba[output + 2] == 0f)
                 rgba[output] = -rgba[output]
         }

@@ -369,6 +369,9 @@ private class DrawBackdropNode(
     private var luminanceProbeRevision = 0L
     private var lastLuminanceStartNanos = 0L
     private var sourceObservation: (() -> Unit)? = null
+    private var observedBackdrop: Backdrop? = null
+    private var auxiliarySourceObservation: (() -> Unit)? = null
+    private var observedAuxiliaryBackdrop: Backdrop? = null
     private var luminanceSourceDirty = false
     private var luminanceLogicalSize = Size.Zero
     private var luminanceLogicalDensity: Density = Density(1f)
@@ -388,12 +391,20 @@ private class DrawBackdropNode(
         if (isAttached) {
             // A source signature describes geometry. Its pixels may change while its bounds stay fixed.
             recordedSourceSignature = null
+            backdropLayerDirty = true
             invalidateDraw()
         }
         if (isAttached && luminanceState != null) {
             luminanceRevision++
             luminanceSourceDirty = true
             luminanceProbeLayer?.let { probe -> luminanceState?.let { captureLuminance(it, probe) } }
+        }
+    }
+    private val onAuxiliaryBackdropSourceChanged: () -> Unit = {
+        if (isAttached) {
+            recordedSourceSignature = null
+            backdropLayerDirty = true
+            invalidateDraw()
         }
     }
     private val foregroundClipPath = Path()
@@ -415,6 +426,7 @@ private class DrawBackdropNode(
 
     // What the current source recordings contain relative to this consumer; see recordingSignature.
     private var recordedSourceSignature: Any? = null
+    private var backdropLayerDirty = true
 
     private var padding by mutableFloatStateOf(0f)
 
@@ -427,8 +439,9 @@ private class DrawBackdropNode(
     private fun sourceSignature(coordinates: LayoutCoordinates?): Any? {
         if (luminanceOnly || sampleBounds != null || onDrawBackdrop !== DefaultOnDrawBackdrop) return null
         val consumer = coordinates?.takeIf { it.isAttached } ?: return null
-        // Only a filtered layer bounds its source to the recorded size; unfiltered layers can overflow.
-        if (graphicsLayer?.renderEffect == null) return null
+        // Only filtered layers and completed native materials bound their source recording.
+        // Unfiltered layers can overflow the recorded size and cannot use this cache safely.
+        if (graphicsLayer?.renderEffect == null && !effectScope.nativeMaterialCompleted) return null
         val scale = effectScope.samplingScale
         val size = effectScope.size
         if (!size.width.isFinite() || !size.height.isFinite() || scale <= 0f) return null
@@ -582,9 +595,16 @@ private class DrawBackdropNode(
             last(region.right, size.width), last(region.bottom, size.height))
     }
 
-    private val drawBackdropLayer: DrawScope.() -> Unit = {
+    private val drawBackdropLayer: DrawScope.() -> Unit = drawBackdropLayer@{
         val layer = graphicsLayer
         if (layer != null) {
+            val currentSignature = sourceSignature(layoutCoordinates)
+            if (!backdropLayerDirty && currentSignature != null && currentSignature == recordedSourceSignature) {
+                // Reuse the retained filtered layer for unrelated redraws and moves that
+                // leave the actual sampled source region unchanged.
+                drawRecordedBackdrop()
+                return@drawBackdropLayer
+            }
             val baseSize = IntSize(
                 ceil(effectScope.size.width + padding * 2f).toInt().coerceAtLeast(1),
                 ceil(effectScope.size.height + padding * 2f).toInt().coerceAtLeast(1)
@@ -661,6 +681,7 @@ private class DrawBackdropNode(
             layer.topLeft = IntOffset.Zero
             drawRecordedBackdrop()
             recordedSourceSignature = sourceSignature(layoutCoordinates)
+            backdropLayerDirty = false
         } else recordedSourceSignature = null
     }
 
@@ -696,9 +717,12 @@ private class DrawBackdropNode(
         val headroomChanged = effectScope.nativeGlassHeadroom != headroom
         effectScope.nativeGlassHeadroom = headroom
         val geometryChanged = effectScope.update(this, samplingScale(size, this))
-        if (effectsDirty || geometryChanged || colorSpaceChanged || headroomChanged) {
+        val backdropConfigurationChanged = effectsDirty || geometryChanged || colorSpaceChanged || headroomChanged
+        if (backdropConfigurationChanged) {
             observeEffects()
+            observeBackdropSource()
             effectsDirty = false
+            backdropLayerDirty = true
         }
 
         if (effectScope.nativeMaterialCompleted) {
@@ -786,9 +810,20 @@ private class DrawBackdropNode(
     }
 
     private fun observeBackdropSource() {
-        sourceObservation?.invoke()
-        sourceObservation = if (isAttached)
-            backdrop.observeSourceChanges(onBackdropSourceChanged) else null
+        val currentBackdrop = backdrop.takeIf { isAttached }
+        if (observedBackdrop !== currentBackdrop) {
+            sourceObservation?.invoke()
+            observedBackdrop = currentBackdrop
+            sourceObservation = currentBackdrop?.observeSourceChanges(onBackdropSourceChanged)
+        }
+
+        val currentAuxiliary = effectScope.auxiliaryBackdrop
+            ?.takeIf { isAttached && it !== currentBackdrop }
+        if (observedAuxiliaryBackdrop !== currentAuxiliary) {
+            auxiliarySourceObservation?.invoke()
+            observedAuxiliaryBackdrop = currentAuxiliary
+            auxiliarySourceObservation = currentAuxiliary?.observeSourceChanges(onAuxiliaryBackdropSourceChanged)
+        }
     }
 
     fun updateLuminanceState(state: BackdropLuminance?) {
@@ -1040,6 +1075,7 @@ private class DrawBackdropNode(
         // Publish the filter only while recording its matching source planes. Applying it
         // to a retained atlas from the previous frame can expose rectangular artifacts.
         effectsDirty = true
+        backdropLayerDirty = true
         invalidateDraw()
     }
 
@@ -1062,11 +1098,16 @@ private class DrawBackdropNode(
         graphicsLayer = graphicsContext.createGraphicsLayer()
         observeBackdropSource()
         effectsDirty = true
+        backdropLayerDirty = true
     }
 
     override fun onDetach() {
         sourceObservation?.invoke()
         sourceObservation = null
+        observedBackdrop = null
+        auxiliarySourceObservation?.invoke()
+        auxiliarySourceObservation = null
+        observedAuxiliaryBackdrop = null
         luminanceGeneration++
         luminanceJob?.cancel()
         luminanceJob = null

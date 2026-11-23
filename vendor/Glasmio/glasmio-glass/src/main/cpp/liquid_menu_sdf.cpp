@@ -663,6 +663,10 @@ extern "C" void liquid_menu_contact_field_build(const float *edges, int edgeFloa
             rgba[output + 2] /= distance;
         }
         rgba[output + 3] = 1.0f;
+        // Empty exterior cells retain zero normals and a negative sentinel. Resolve
+        // them while the native field is hot instead of rescanning the bitmap in Kotlin.
+        if (rgba[output] < 0.0f && rgba[output + 1] == 0.0f && rgba[output + 2] == 0.0f)
+            rgba[output] = -rgba[output];
     }
 }
 

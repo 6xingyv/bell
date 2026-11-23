@@ -725,6 +725,7 @@ internal fun Modifier.navigationGlassBackgroundResolved(
     backgroundOverlay: (DrawScope.() -> Unit)? = null,
     fusePressOverlayIntoCompletion: Boolean = false,
     shadowMaterial: NavigationGlassMaterial? = material,
+    backdropSamplingScale: Float? = null,
 ): Modifier {
     val nativeRecipe = if (isRuntimeShaderSupported() && navigationMaterial && innerShadows != null && surfaceOverlay == null &&
         sampleBackdrop && appearance.usesBackdrop) {
@@ -737,7 +738,7 @@ internal fun Modifier.navigationGlassBackgroundResolved(
     )
     val samplingScale: (Size, Density) -> Float = { size, density ->
         val outline = shape()
-        if (outline !is LiquidContactShape && outline !is ToolbarActionShape &&
+        backdropSamplingScale ?: if (outline !is LiquidContactShape && outline !is ToolbarActionShape &&
             (outline is RoundedRectangularShape || outline is CornerBasedShape || outline === RectangleShape))
             navigationGlassCaptureScale(size.minDimension / density.density) else 1f
     }
@@ -951,6 +952,7 @@ fun GlassSurface(
     preserveBackdropColors: Boolean = false,
     observeChildPress: Boolean = false,
     pressInteraction: InteractiveHighlight? = null,
+    backdropSamplingScale: Float? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val colors = LocalGlassColors.current
@@ -1161,6 +1163,7 @@ fun GlassSurface(
             inheritedLuminance,
             adaptive,
             materialDarkFraction,
+            backdropSamplingScale,
         ) {
             Modifier.navigationGlassBackgroundResolved(
                 backdrop = surfaceBackdrop,
@@ -1189,6 +1192,7 @@ fun GlassSurface(
                 materialTint = navigationSurfaceColor.takeIf { emphasis == GlassEmphasis.Regular },
                 blurRadius = frostRadius ?: Dp.Unspecified,
                 preserveBackdropColors = preserveBackdropColors,
+                backdropSamplingScale = backdropSamplingScale,
                 prominentTint = containerColor.copy(alpha = 1f).takeIf { emphasis == GlassEmphasis.Prominent },
                 luminanceState = luminance.takeIf { adaptive && inheritedLuminance == null },
                 sampledPressHighlight = { size ->

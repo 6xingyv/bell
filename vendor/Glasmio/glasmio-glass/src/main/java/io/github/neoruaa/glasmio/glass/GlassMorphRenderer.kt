@@ -188,6 +188,7 @@ class GlassMorphRenderer(
     private var materialWidth = 0
     private var materialHeight = 0
     private var recordedViewport: Rect? = null
+    private var recordedBackdropRevision: Int? = null
     private val sourceColorEffect = if (appearance.usesBackdrop) {
         RenderEffect.createColorFilterEffect(
             ColorMatrixColorFilter(ColorMatrix().apply { setSaturation(1.5f) }),
@@ -388,12 +389,14 @@ class GlassMorphRenderer(
         if (dropShadowAlpha > 0f && !completeNativeMaterial) {
             drawDropShadow(this, shape, bounds, dropShadowAlpha)
         }
-        val settledSource = (backdrop as? SettledBackdrop)?.takeIf { it.isSettled }
-        // Observe cross-window redraws only at rest. Re-recording the raw source also lets
-        // custom draw callbacks subscribe to their own state without polling.
-        settledSource?.revision
+        val refreshableSource = (backdrop as? SettledBackdrop)?.takeIf { it.canRefresh }
+        val revision = refreshableSource?.revision
         val viewportChanged = recordedViewport != viewport
-        if (appearance.usesBackdrop && (viewportChanged || settledSource != null)) {
+        // A drag may redraw the menu with the same backdrop. Only recapture live menu
+        // sources when the viewport moves or the presenting window publishes new pixels.
+        val sourceChanged = revision != null &&
+            (refreshableSource?.refreshWhileMoving != true || revision != recordedBackdropRevision)
+        if (appearance.usesBackdrop && (viewportChanged || sourceChanged)) {
             val bufferSize = IntSize(
                 ceil(viewport.width * renderScale).toInt(),
                 ceil(viewport.height * renderScale).toInt(),
@@ -436,6 +439,7 @@ class GlassMorphRenderer(
                 ) { drawLayer(source) }
             }
             recordedViewport = viewport
+            recordedBackdropRevision = revision
         }
         val clearFraction = if (sourceFilterProgress == null) {
             if (materialPreset == NavigationGlassMaterial.Clear) 1f else 0f

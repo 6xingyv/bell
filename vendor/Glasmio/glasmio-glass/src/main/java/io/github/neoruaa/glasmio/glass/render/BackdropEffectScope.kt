@@ -18,6 +18,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.Density
@@ -58,6 +59,13 @@ internal abstract class BackdropEffectScopeImpl : BackdropEffectScope, RuntimeSh
     internal var effectTextureSize: IntSize? = null
     internal var materializedInputEffects: List<RenderEffect> = emptyList()
     internal var materializedMipAtlas: NativeGlassMipAtlas? = null
+    /** Last platform blur effect; animated blur updates should not retain every prior radius. */
+    internal var cachedBlurInput: RenderEffect? = null
+    internal var cachedBlurInputKnown: Boolean = false
+    internal var cachedBlurRadiusX: Float = Float.NaN
+    internal var cachedBlurRadiusY: Float = Float.NaN
+    internal var cachedBlurTileMode: TileMode? = null
+    internal var cachedBlurEffect: RenderEffect? = null
     internal var colorManagedNativeGlass: Boolean = false
     internal var nativeGlassHardwareRendering: Boolean = false
     internal var nativeGlassHeadroom: Float = 1f
@@ -151,6 +159,12 @@ internal abstract class BackdropEffectScopeImpl : BackdropEffectScope, RuntimeSh
         nativeMaterialCompleted = false
         auxiliaryBackdrop = null
         resources.clear()
+        cachedBlurInput = null
+        cachedBlurInputKnown = false
+        cachedBlurRadiusX = Float.NaN
+        cachedBlurRadiusY = Float.NaN
+        cachedBlurTileMode = null
+        cachedBlurEffect = null
         colorManagedNativeGlass = false
         nativeGlassHardwareRendering = false
         nativeGlassHeadroom = 1f
