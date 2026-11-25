@@ -62,6 +62,7 @@ internal abstract class BackdropEffectScopeImpl : BackdropEffectScope, RuntimeSh
     internal var effectTextureSize: IntSize? = null
     internal var materializedInputEffects: List<RenderEffect> = emptyList()
     internal var materializedMipAtlas: NativeGlassMipAtlas? = null
+    internal var materializedOpticalStage: NativeGlassTwoRateOpticalStage? = null
     /** Last platform blur effect; animated blur updates should not retain every prior radius. */
     internal var cachedBlurInput: RenderEffect? = null
     internal var cachedBlurInputKnown: Boolean = false
@@ -69,7 +70,6 @@ internal abstract class BackdropEffectScopeImpl : BackdropEffectScope, RuntimeSh
     internal var cachedBlurRadiusY: Float = Float.NaN
     internal var cachedBlurTileMode: TileMode? = null
     internal var cachedBlurEffect: RenderEffect? = null
-    internal var materializedOpticalStage: NativeGlassTwoRateOpticalStage? = null
     internal var colorManagedNativeGlass: Boolean = false
     internal var nativeGlassHardwareRendering: Boolean = false
     internal var nativeGlassHeadroom: Float = 1f
@@ -165,12 +165,6 @@ internal abstract class BackdropEffectScopeImpl : BackdropEffectScope, RuntimeSh
         nativeMaterialCompleted = false
         auxiliaryBackdrop = null
         resources.clear()
-        cachedBlurInput = null
-        cachedBlurInputKnown = false
-        cachedBlurRadiusX = Float.NaN
-        cachedBlurRadiusY = Float.NaN
-        cachedBlurTileMode = null
-        cachedBlurEffect = null
         colorManagedNativeGlass = false
         nativeGlassHardwareRendering = false
         nativeGlassHeadroom = 1f

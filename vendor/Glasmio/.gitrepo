@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://github.com/6xingyv/Glasmio.git
 	branch = main
-	commit = 5c49e4ea8430c13918080da8c5d180eff933d65a
-	parent = 6c672224f25e4cb3cbe8ef5614d0efa930945031
+	commit = 1077acb2719b87b56021f81b33da058ed1f369cf
+	parent = 130f17d27ff5ce84557a779bc4c2cd3bb7cc0a6b
 	method = merge
 	cmdver = 0.4.9

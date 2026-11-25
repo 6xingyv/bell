@@ -56,8 +56,8 @@ internal fun Modifier.layerBackdrop(
 fun Modifier.conditionalLayerBackdrop(
     backdrop: LayerBackdrop,
     captureEnabled: Boolean,
-    maxCaptureHeight: Dp = Dp.Unspecified,
     reuseContent: Boolean = false,
+    maxCaptureHeight: Dp = Dp.Unspecified,
 ): Modifier = this then LayerBackdropElement(
     backdrop,
     reuseContent = reuseContent,

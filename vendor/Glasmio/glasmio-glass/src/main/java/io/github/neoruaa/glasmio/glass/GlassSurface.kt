@@ -743,13 +743,15 @@ internal fun Modifier.navigationGlassBackgroundResolved(
     val allowContactSamplingScale = !refractionHeight.value.isFinite() && !refractionAmount.value.isFinite()
     val samplingScale: (Size, Density) -> Float = { size, density ->
         val outline = shape()
+        backdropSamplingScale ?: run {
         val eligible = when {
             outline is LiquidContactShape || outline is ToolbarActionShape || outline is NavigationGlassUnionShape -> allowContactSamplingScale
             outline is Capsule || outline is RoundedRectangularShape || outline is CornerBasedShape || outline === RectangleShape -> true
             else -> false
         }
         val minDimension = (outline as? NavigationGlassUnionShape)?.minimumDimension ?: size.minDimension
-        backdropSamplingScale ?: if (eligible) navigationGlassCaptureScale(minDimension / density.density) else 1f
+        if (eligible) navigationGlassCaptureScale(minDimension / density.density) else 1f
+        }
     }
     val sampledPressRenderer = if (isRuntimeShaderSupported() && Build.VERSION.SDK_INT < 36 && sampledPressHighlight != null) PressHighlightRenderer() else null
     // Only the shared bottom base opts in: it has no child content before its press overlay.
