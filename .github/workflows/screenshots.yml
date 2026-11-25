@@ -58,7 +58,7 @@ jobs:
           "$RUNNER_TEMP/jellyfin/jellyfin" --nowebclient --ffmpeg "$(command -v ffmpeg)" \
             --datadir "$fixture/data" --configdir "$fixture/config" \
             --cachedir "$fixture/cache" --logdir "$fixture/log" > "$fixture/server.log" 2>&1 &
-          curl -fsS --retry 60 --retry-connrefused --retry-delay 2 http://127.0.0.1:18096/health
+          curl -fsS --retry 90 --retry-all-errors --retry-delay 2 --max-time 5 http://127.0.0.1:18096/System/Info/Public
           node .github/screenshots/prepare-library.mjs "$fixture/music" http://127.0.0.1:18096
       - name: Download the release build
         uses: actions/download-artifact@v7
