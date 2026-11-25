@@ -29,7 +29,7 @@ android {
         applicationId = "com.mocharealm.bell"
         minSdk = 33
         targetSdk = 37
-        versionCode = providers.gradleProperty("versionCode").orElse("4").get().toInt()
+        versionCode = providers.gradleProperty("versionCode").orElse("5").get().toInt()
         versionName = providers.gradleProperty("releaseVersion").orElse("0.1.0").get()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk {
