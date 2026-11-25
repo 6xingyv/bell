@@ -151,7 +151,18 @@ async function seedServer(server) {
   }
   const post = (path, body) => api(path, { method: 'POST', body })
 
-  const system = await api('/System/Info/Public')
+  let system
+  for (let attempt = 1; ; attempt++) {
+    try {
+      system = await api('/System/Info/Public')
+      break
+    } catch (error) {
+      const starting = error.message === 'GET /System/Info/Public returned 503'
+        || error.cause?.code === 'ECONNREFUSED'
+      if (!starting || attempt >= 60) throw error
+      await new Promise(resolve => setTimeout(resolve, 2000))
+    }
+  }
   if (!system.StartupWizardCompleted) {
     await post('/Startup/Configuration', {
       ServerName: 'Bell Demo', UICulture: 'en-US', MetadataCountryCode: 'US', PreferredMetadataLanguage: 'en',

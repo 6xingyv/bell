@@ -2,13 +2,27 @@ name: Release packages
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing release tag
+        required: true
+        type: string
+      package_run_id:
+        description: Run ID containing signed APKs for that tag
+        required: true
+        type: string
 permissions:
   contents: read
+  actions: read
+env:
+  RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.release_tag || github.ref_name }}
   cancel-in-progress: false
 jobs:
   packages:
+    if: github.event_name == 'push'
     permissions:
       contents: write
     uses: ./.github/workflows/build.yml
@@ -17,12 +31,17 @@ jobs:
     secrets: inherit
   screenshots:
     needs: packages
+    if: ${{ !cancelled() && (needs.packages.result == 'success' || needs.packages.result == 'skipped') }}
     uses: ./.github/workflows/screenshots.yml
+    with:
+      package_run_id: ${{ inputs.package_run_id || '' }}
   publish:
     needs: [packages, screenshots]
+    if: ${{ !cancelled() && needs.screenshots.result == 'success' }}
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+      actions: read
     steps:
       - uses: actions/checkout@v7
         with:
@@ -33,6 +52,8 @@ jobs:
         with:
           name: bell-android
           path: release-assets
+          github-token: ${{ inputs.package_run_id != '' && github.token || '' }}
+          run-id: ${{ inputs.package_run_id || github.run_id }}
       - name: Download screenshots
         uses: actions/download-artifact@v7
         with:
@@ -57,10 +78,11 @@ jobs:
           mapfile -d '' assets < <(find release-assets-renamed -type f -print0)
           test "${#assets[@]}" -gt 0
           assets+=(release-screenshots/*.png)
-          revision_range="$GITHUB_SHA"
+          release_sha=$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")
+          revision_range="$release_sha"
           note_options=()
-          if previous_tag=$(git describe --tags --abbrev=0 --first-parent --match 'v[0-9]*' "$GITHUB_SHA^" 2>/dev/null); then
-            revision_range="$previous_tag..$GITHUB_SHA"
+          if previous_tag=$(git describe --tags --abbrev=0 --first-parent --match 'v[0-9]*' "$release_sha^" 2>/dev/null); then
+            revision_range="$previous_tag..$release_sha"
             note_options+=(--notes-start-tag "$previous_tag")
           fi
           translation_locales=$(git log --format=%s "$revision_range" |
@@ -74,12 +96,12 @@ jobs:
             )
             note_options+=(--notes "$translation_notes")
           fi
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             exit 0
           fi
-          gh release create "$GITHUB_REF_NAME" "${assets[@]}" \
+          gh release create "$RELEASE_TAG" "${assets[@]}" \
             --verify-tag \
-            --title "Bell $GITHUB_REF_NAME" \
+            --title "Bell $RELEASE_TAG" \
             --generate-notes "${note_options[@]}"
       - name: Update the README screenshots
         env:
@@ -96,7 +118,7 @@ jobs:
           git -C "$preview" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           for attempt in 1 2 3; do
             latest=$(gh api "repos/$GH_REPO/releases/latest" --jq .tag_name)
-            if [[ "$latest" != "$GITHUB_REF_NAME" ]]; then
+            if [[ "$latest" != "$RELEASE_TAG" ]]; then
               exit 0
             fi
             git -C "$preview" fetch origin "$DEFAULT_BRANCH"
@@ -105,7 +127,7 @@ jobs:
             cp release-screenshots/*.png "$preview/docs/img/screenshots/"
             git -C "$preview" add docs/img/screenshots
             git -C "$preview" diff --cached --quiet && exit 0
-            git -C "$preview" commit -m "docs: refresh screenshots for $GITHUB_REF_NAME"
+            git -C "$preview" commit -m "docs: refresh screenshots for $RELEASE_TAG"
             if git -C "$preview" push origin "HEAD:$DEFAULT_BRANCH"; then
               exit 0
             fi
