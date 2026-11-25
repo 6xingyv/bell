@@ -21,7 +21,6 @@ import com.mocharealm.bell.ui.BellStore
 import com.mocharealm.bell.ui.composables.AlbumTile
 import com.mocharealm.bell.ui.composables.CoverListRow
 import com.mocharealm.bell.ui.composables.DetailList
-import com.mocharealm.bell.ui.composables.LocalMusicDark
 import com.mocharealm.bell.ui.composables.LocalMusicGridColumns
 import com.mocharealm.bell.ui.composables.MusicAccent
 import com.mocharealm.bell.ui.composables.MusicArtwork
@@ -30,6 +29,7 @@ import com.mocharealm.bell.ui.composables.MusicText
 import com.mocharealm.bell.ui.composables.musicShape
 import com.mocharealm.bell.ui.mvi.rememberScreenViewModel
 import com.mocharealm.bell.ui.nav.Routes
+import com.mocharealm.bell.ui.nav.musicSharedArtwork
 import com.mocharealm.bell.ui.nav.rememberArtworkLink
 import com.mocharealm.bell.ui.screen.library.composables.LibraryCollection
 import com.mocharealm.bell.ui.screen.library.composables.libraryCollectionGrid
@@ -59,14 +59,17 @@ internal fun PlaylistsScreen(
         remember(text_favorite_songs) {
             Item(Routes.FavoriteSongs, text_favorite_songs, "Playlist")
         }
-    val openFavorites = { navigate(Routes.FavoriteSongs) }
 
     DetailList(text_playlists, back) {
         if (grid) {
             libraryCollectionGrid(listOf(favorites) + playlists, columns) { item, modifier ->
                 if (item.id == favorites.id) {
-                    Column(modifier.clickable(onClick = openFavorites)) {
-                        FavoriteSongsCover(Modifier.fillMaxWidth().aspectRatio(1f), 9.dp)
+                    val link =
+                        rememberArtworkLink(favorites.id, container = false) {
+                            navigate(Routes.FavoriteSongs)
+                        }
+                    Column(modifier.clickable(onClick = link.open)) {
+                        FavoriteSongsCover(Modifier.fillMaxWidth().aspectRatio(1f), 9.dp, link.key)
                         Spacer(Modifier.height(5.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             MusicText(item.name, 14, modifier = Modifier.weight(1f, fill = false))
@@ -81,11 +84,15 @@ internal fun PlaylistsScreen(
             return@DetailList
         }
         item {
+            val link =
+                rememberArtworkLink(favorites.id, container = false) {
+                    navigate(Routes.FavoriteSongs)
+                }
             CoverListRow(
                 text_favorite_songs,
                 null,
-                { FavoriteSongsCover(Modifier.size(64.dp), 5.dp) },
-                openFavorites,
+                { FavoriteSongsCover(Modifier.size(64.dp), 5.dp, link.key) },
+                link.open,
             )
         }
         items(playlists, key = { it.id }) { item ->
@@ -113,10 +120,20 @@ internal fun PlaylistsScreen(
 }
 
 @Composable
-private fun FavoriteSongsCover(modifier: Modifier, radius: Dp) {
-    val background = if (LocalMusicDark.current) Color(0xFF29292B) else Color(0xFFEEEEEF)
+internal fun FavoriteSongsCover(
+    modifier: Modifier,
+    radius: Dp,
+    sharedKey: String? = null,
+    shadow: Dp = 0.dp,
+) {
+    val background = if (isSystemInDarkTheme()) Color(0xFF29292B) else Color(0xFFEEEEEF)
+    val shape = musicShape(radius)
     BoxWithConstraints(
-        modifier.clip(musicShape(radius)).background(background),
+        modifier
+            .then(musicSharedArtwork(sharedKey))
+            .shadow(shadow, shape, clip = false)
+            .clip(shape)
+            .background(background),
         contentAlignment = Alignment.Center,
     ) {
         MusicIcon("star.fill", MusicAccent, maxWidth * .55f)

@@ -57,6 +57,7 @@ import com.mocharealm.bell.ui.nav.playerPanelShape
 import com.mocharealm.bell.ui.nav.playerWindowCorners
 import com.mocharealm.bell.ui.nav.routeTitle
 import com.mocharealm.bell.ui.screen.album.AlbumScreen
+import com.mocharealm.bell.ui.screen.album.FavoriteSongsBackground
 import com.mocharealm.bell.ui.screen.albums.AlbumsScreen
 import com.mocharealm.bell.ui.screen.artist.ArtistScreen
 import com.mocharealm.bell.ui.screen.artists.ArtistsScreen
@@ -216,6 +217,7 @@ fun BellApp(model: BellStore) {
         MusicSystemBars(
             playerMotion.pastMidpoint ||
                 creditsDark ||
+                Routes.isFavoriteSongs(pageKey) ||
                 (state.album != null && state.album?.type != "MusicArtist")
         )
         when {
@@ -279,12 +281,7 @@ fun BellApp(model: BellStore) {
                                                 snapshot.album.takeIf { key.startsWith("album:") }
                                             val tracks =
                                                 when {
-                                                    key in
-                                                        listOf(
-                                                            Routes.Favorites,
-                                                            Routes.FavoriteSongs,
-                                                            Routes.DownloadedFavoriteSongs,
-                                                        ) ->
+                                                    Routes.isFavoriteSongs(key) ->
                                                         snapshot.songs.filter {
                                                             it.userData.favorite
                                                         }
@@ -320,8 +317,7 @@ fun BellApp(model: BellStore) {
                                                     else if (
                                                         key == Routes.Songs ||
                                                             key == Routes.DownloadedSongs ||
-                                                            key == Routes.FavoriteSongs ||
-                                                            key == Routes.DownloadedFavoriteSongs ||
+                                                            Routes.isFavoriteSongs(key) ||
                                                             key.startsWith(Routes.ArtistPrefix)
                                                     )
                                                         listOf(
@@ -390,9 +386,13 @@ fun BellApp(model: BellStore) {
                                                         ),
                                                 dark =
                                                     creditsDark ||
+                                                        Routes.isFavoriteSongs(key) ||
                                                         (album != null &&
                                                             album.type != "MusicArtist"),
-                                                largeTitle = album == null && credit == null,
+                                                largeTitle =
+                                                    album == null &&
+                                                        credit == null &&
+                                                        !Routes.isFavoriteSongs(key),
                                                 actions =
                                                     if (credit != null)
                                                         listOf(
@@ -654,6 +654,11 @@ fun BellApp(model: BellStore) {
                                                                 else Color(0xFFF2F2F7)
                                                             )
                                                     )
+                                                else if (Routes.isFavoriteSongs(key))
+                                                    Box(
+                                                        Modifier.fillMaxSize()
+                                                            .background(FavoriteSongsBackground)
+                                                    )
                                                 else if (
                                                     key.startsWith("album:") &&
                                                         snapshot.album != null &&
@@ -736,6 +741,7 @@ fun BellApp(model: BellStore) {
                                                 LocalMusicOffline provides offline,
                                                 LocalMusicDark provides
                                                     (creditsDark ||
+                                                        Routes.isFavoriteSongs(key) ||
                                                         (key.startsWith("album:") &&
                                                             pageState.album?.type !=
                                                                 "MusicArtist")),
@@ -766,6 +772,19 @@ fun BellApp(model: BellStore) {
                                                             model,
                                                             pageState,
                                                             { model.accept(BellIntent.CloseAlbum) },
+                                                        )
+                                                    Routes.isFavoriteSongs(key) ->
+                                                        AlbumScreen(
+                                                            model,
+                                                            pageState,
+                                                            {
+                                                                navigate(
+                                                                    if (offline)
+                                                                        Routes.DownloadedPlaylists
+                                                                    else Routes.Playlists
+                                                                )
+                                                            },
+                                                            favoriteSongs = true,
                                                         )
                                                     pageRoute == Routes.Library ->
                                                         LibraryScreen(
@@ -834,16 +853,6 @@ fun BellApp(model: BellStore) {
                                                     else -> {
                                                         val songs =
                                                             when {
-                                                                pageRoute in
-                                                                    listOf(
-                                                                        Routes.Favorites,
-                                                                        Routes.FavoriteSongs,
-                                                                        Routes
-                                                                            .DownloadedFavoriteSongs,
-                                                                    ) ->
-                                                                    pageState.songs.filter {
-                                                                        it.userData.favorite
-                                                                    }
                                                                 pageRoute.startsWith(
                                                                     Routes.ArtistPrefix
                                                                 ) ->

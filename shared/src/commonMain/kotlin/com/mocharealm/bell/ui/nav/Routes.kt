@@ -23,6 +23,9 @@ object Routes {
 
     fun isDownloaded(route: String) = route.startsWith(Downloaded)
 
+    fun isFavoriteSongs(route: String) =
+        route == Favorites || route == FavoriteSongs || route == DownloadedFavoriteSongs
+
     fun downloaded(route: String) =
         when (route) {
             Albums -> DownloadedAlbums

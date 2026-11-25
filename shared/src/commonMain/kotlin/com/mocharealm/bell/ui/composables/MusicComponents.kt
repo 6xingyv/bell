@@ -49,6 +49,9 @@ object MusicMetrics {
     val navigation = 60.dp
     val cardRadius = 9.dp
     val footerSpace = 164.dp
+    internal val trackArtwork = 48.dp
+    internal val trackArtworkGap = 12.dp
+    internal val trackArtworkTextInset = trackArtwork + trackArtworkGap
 }
 
 @Composable
@@ -256,8 +259,8 @@ fun MusicTrackRow(
                     modifier = Modifier.width(31.dp),
                 )
             else {
-                MusicArtwork(model, state, item, Modifier.size(48.dp), 5.dp)
-                Spacer(Modifier.width(12.dp))
+                MusicArtwork(model, state, item, Modifier.size(MusicMetrics.trackArtwork), 5.dp)
+                Spacer(Modifier.width(MusicMetrics.trackArtworkGap))
             }
             Column(Modifier.weight(1f)) {
                 MusicText(item.name, 17, primary)
@@ -288,7 +291,14 @@ fun MusicTrackRow(
     }
     if (swipeEnabled) MusicSwipeRow(model, state, item, row) else row()
     Box(
-        Modifier.padding(start = if (fullWidthDivider) 0.dp else if (numbered) 31.dp else 60.dp)
+        Modifier.padding(
+                start =
+                    when {
+                        fullWidthDivider -> 0.dp
+                        numbered -> 31.dp
+                        else -> MusicMetrics.trackArtworkTextInset
+                    }
+            )
             .fillMaxWidth()
             .height(.5.dp)
             .then(

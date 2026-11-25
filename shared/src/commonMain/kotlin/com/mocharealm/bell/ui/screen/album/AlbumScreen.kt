@@ -32,16 +32,25 @@ import com.mocharealm.bell.ui.composables.rememberMusicArtworkColor
 import com.mocharealm.bell.ui.mvi.rememberScreenViewModel
 import com.mocharealm.bell.ui.nav.LocalArtworkNavigation
 import com.mocharealm.bell.ui.nav.MusicPage
+import com.mocharealm.bell.ui.nav.Routes
 import com.mocharealm.bell.ui.screen.album.composables.MusicAlbumOverview
 import com.mocharealm.bell.ui.screen.album.composables.albumArtistDisplay
 import com.mocharealm.bell.ui.screen.album.composables.albumTrackArtist
+import com.mocharealm.bell.ui.screen.playlists.FavoriteSongsCover
 import com.mocharealm.bell.ui.utils.LocalMusicPlayerPlus
 import com.mocharealm.bell.ui.utils.formatBellString
 import com.mocharealm.bell.ui.utils.musicBackground
 import org.jetbrains.compose.resources.stringResource
 
+internal val FavoriteSongsBackground = Color(0xFF51171D)
+
 @Composable
-fun AlbumScreen(model: BellStore, state: BellState, back: () -> Unit) {
+fun AlbumScreen(
+    model: BellStore,
+    state: BellState,
+    back: () -> Unit,
+    favoriteSongs: Boolean = false,
+) {
     val text_album_track_summary = stringResource(Res.string.album_track_summary)
     val dateFormat = stringResource(Res.string.release_date_format)
     val text_disc_number = stringResource(Res.string.disc_number)
@@ -52,19 +61,27 @@ fun AlbumScreen(model: BellStore, state: BellState, back: () -> Unit) {
     val observedState by viewModel.state.collectAsState()
     val screenState = if (state === model.state.value) observedState else viewModel.snapshot(state)
 
-    val album = screenState.album ?: return
+    val album =
+        if (favoriteSongs) {
+            Item(Routes.FavoriteSongs, stringResource(Res.string.favorite_songs), "Playlist")
+        } else screenState.album ?: return
+    val playlist = album.type == "Playlist"
+    val artist = album.albumArtistDisplay
+    val classification = listOfNotNull(album.genre, album.year?.toString()).joinToString(" · ")
     val tabletMode = LocalMusicTabletMode.current
     val albumTitle =
         if (album.type == "Mix") stringResource(Res.string.mix_title, album.name) else album.name
     val songs =
-        remember(screenState.albumSongs, album.type) {
-            if (album.type == "MusicAlbum")
-                screenState.albumSongs.sortedWith(
-                    compareBy<Item> { (it.discNumber ?: 1).coerceAtLeast(1) }
-                        .thenBy { it.number ?: Int.MAX_VALUE }
-                )
-            else screenState.albumSongs
-        }
+        if (favoriteSongs) remember(state.songs) { state.songs.filter { it.userData.favorite } }
+        else
+            remember(screenState.albumSongs, album.type) {
+                if (album.type == "MusicAlbum")
+                    screenState.albumSongs.sortedWith(
+                        compareBy<Item> { (it.discNumber ?: 1).coerceAtLeast(1) }
+                            .thenBy { it.number ?: Int.MAX_VALUE }
+                    )
+                else screenState.albumSongs
+            }
     val discs =
         remember(songs, album.type) {
             if (album.type == "MusicAlbum")
@@ -75,9 +92,29 @@ fun AlbumScreen(model: BellStore, state: BellState, back: () -> Unit) {
             else listOf(1 to songs)
         }
     val multiDisc = discs.size > 1
-    val albumAccent by rememberMusicArtworkColor(model, state, album)
+    val albumAccent =
+        if (favoriteSongs) FavoriteSongsBackground
+        else rememberMusicArtworkColor(model, state, album).value
     val (coverWidth, coverHeight) =
         fittedMusicArtwork(258.dp, 258.dp, album.primaryImageAspectRatio ?: 1f)
+    val coverKey =
+        LocalArtworkNavigation.current?.origins?.get(album.id)?.token?.let {
+            if (it.startsWith("container:")) "cover:$it" else it
+        }
+    val cover: @Composable () -> Unit = {
+        val modifier = Modifier.size(coverWidth, coverHeight)
+        if (favoriteSongs) FavoriteSongsCover(modifier, 9.dp, coverKey, shadow = 12.dp)
+        else
+            MusicArtwork(
+                model,
+                state,
+                album,
+                modifier,
+                9.dp,
+                sharedKey = coverKey,
+                shadowElevation = 12.dp,
+            )
+    }
     CompositionLocalProvider(LocalMusicPlayerPlus provides true) {
         MusicPage(albumTitle, largeTitle = false) {
             item {
@@ -87,18 +124,7 @@ fun AlbumScreen(model: BellStore, state: BellState, back: () -> Unit) {
                         Modifier.fillMaxWidth().height(coverHeight),
                         verticalAlignment = Alignment.Top,
                     ) {
-                        MusicArtwork(
-                            model,
-                            state,
-                            album,
-                            Modifier.size(coverWidth, coverHeight),
-                            9.dp,
-                            sharedKey =
-                                LocalArtworkNavigation.current?.origins?.get(album.id)?.token?.let {
-                                    if (it.startsWith("container:")) "cover:$it" else it
-                                },
-                            shadowElevation = 12.dp,
-                        )
+                        cover()
                         Spacer(Modifier.width(28.dp))
                         Column(
                             Modifier.weight(1f).fillMaxHeight(),
@@ -117,24 +143,27 @@ fun AlbumScreen(model: BellStore, state: BellState, back: () -> Unit) {
                                         modifier = Modifier.fillMaxWidth(),
                                         lines = 2,
                                     )
-                                    Spacer(Modifier.height(6.dp))
-                                    AlbumArtistLink(model, state, album) {
+                                    if (artist.isNotBlank()) {
+                                        Spacer(Modifier.height(6.dp))
+                                        AlbumArtistLink(model, state, album) {
+                                            MusicText(
+                                                artist,
+                                                20,
+                                                Color.White,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                lines = 2,
+                                            )
+                                        }
+                                    }
+                                    if (classification.isNotBlank()) {
+                                        Spacer(Modifier.height(7.dp))
                                         MusicText(
-                                            album.albumArtistDisplay,
-                                            20,
-                                            Color.White,
-                                            modifier = Modifier.fillMaxWidth(),
-                                            lines = 2,
+                                            classification,
+                                            14,
+                                            Color.White.copy(alpha = .65f),
+                                            FontWeight.Medium,
                                         )
                                     }
-                                    Spacer(Modifier.height(7.dp))
-                                    MusicText(
-                                        listOfNotNull(album.genre, album.year?.toString())
-                                            .joinToString(" · "),
-                                        14,
-                                        Color.White.copy(alpha = .65f),
-                                        FontWeight.Medium,
-                                    )
                                 }
                             }
                             Column {
@@ -167,7 +196,8 @@ fun AlbumScreen(model: BellStore, state: BellState, back: () -> Unit) {
                                         Spacer(Modifier.width(7.dp))
                                         MusicText(text_play, 18, albumAccent, FontWeight.Bold)
                                     }
-                                    AlbumDownloadButton(model, state, album, songs)
+                                    if (!favoriteSongs)
+                                        AlbumDownloadButton(model, state, album, songs)
                                 }
                                 if (!album.overview.isNullOrBlank()) {
                                     Spacer(Modifier.height(12.dp))
@@ -181,18 +211,7 @@ fun AlbumScreen(model: BellStore, state: BellState, back: () -> Unit) {
                         Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        MusicArtwork(
-                            model,
-                            state,
-                            album,
-                            Modifier.size(coverWidth, coverHeight),
-                            9.dp,
-                            sharedKey =
-                                LocalArtworkNavigation.current?.origins?.get(album.id)?.token?.let {
-                                    if (it.startsWith("container:")) "cover:$it" else it
-                                },
-                            shadowElevation = 12.dp,
-                        )
+                        cover()
                         Spacer(Modifier.height(24.dp))
                         MusicText(
                             albumTitle,
@@ -202,23 +221,27 @@ fun AlbumScreen(model: BellStore, state: BellState, back: () -> Unit) {
                             lines = 2,
                             align = androidx.compose.ui.text.style.TextAlign.Center,
                         )
-                        Spacer(Modifier.height(5.dp))
-                        AlbumArtistLink(model, state, album) {
+                        if (artist.isNotBlank()) {
+                            Spacer(Modifier.height(5.dp))
+                            AlbumArtistLink(model, state, album) {
+                                MusicText(
+                                    artist,
+                                    20,
+                                    Color.White,
+                                    lines = 2,
+                                    align = androidx.compose.ui.text.style.TextAlign.Center,
+                                )
+                            }
+                        }
+                        if (classification.isNotBlank()) {
+                            Spacer(Modifier.height(7.dp))
                             MusicText(
-                                album.albumArtistDisplay,
-                                20,
-                                Color.White,
-                                lines = 2,
-                                align = androidx.compose.ui.text.style.TextAlign.Center,
+                                classification,
+                                12,
+                                Color.White.copy(alpha = .65f),
+                                FontWeight.Medium,
                             )
                         }
-                        Spacer(Modifier.height(7.dp))
-                        MusicText(
-                            listOfNotNull(album.genre, album.year?.toString()).joinToString(" · "),
-                            12,
-                            Color.White.copy(alpha = .65f),
-                            FontWeight.Medium,
-                        )
                         Spacer(Modifier.height(16.dp))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -249,7 +272,7 @@ fun AlbumScreen(model: BellStore, state: BellState, back: () -> Unit) {
                                 Spacer(Modifier.width(7.dp))
                                 MusicText(text_play, 18, albumAccent, FontWeight.Bold)
                             }
-                            AlbumDownloadButton(model, state, album, songs)
+                            if (!favoriteSongs) AlbumDownloadButton(model, state, album, songs)
                         }
                     }
                     if (!album.overview.isNullOrBlank()) {
@@ -279,16 +302,25 @@ fun AlbumScreen(model: BellStore, state: BellState, back: () -> Unit) {
                             Modifier.padding(top = 20.dp, bottom = 12.dp),
                         )
                     }
-                itemsIndexed(tracks, key = { _, it -> it.id }) { index, item ->
+                itemsIndexed(
+                    tracks,
+                    key = { index, item ->
+                        if (playlist) "playlist:$index:${item.id}" else item.id
+                    },
+                ) { index, item ->
                     MusicTrackRow(
                         model,
                         state,
                         item,
                         startIndex + index,
                         songs,
-                        numbered = album.type != "Playlist",
+                        numbered = !playlist,
                         subtitle =
-                            if (album.type == "MusicAlbum") albumTrackArtist(item, album) else null,
+                            when {
+                                playlist -> item.artist
+                                album.type == "MusicAlbum" -> albumTrackArtist(item, album)
+                                else -> null
+                            },
                         numberLabel = item.number ?: index + 1,
                         fullWidthDivider = index == tracks.lastIndex,
                     )
