@@ -1,0 +1,348 @@
+// SPDX-License-Identifier: LicenseRef-Mocha-1.0
+package com.mocharealm.bell.ui.screen.home
+
+import androidx.compose.animation.*
+import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.*
+import androidx.compose.foundation.gestures.snapping.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.*
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.*
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.*
+import androidx.compose.ui.unit.*
+import com.mocharealm.bell.domain.model.Item
+import com.mocharealm.bell.resources.*
+import com.mocharealm.bell.ui.BellIntent
+import com.mocharealm.bell.ui.BellState
+import com.mocharealm.bell.ui.BellStore
+import com.mocharealm.bell.ui.composables.EmptyMusic
+import com.mocharealm.bell.ui.composables.MusicArtwork
+import com.mocharealm.bell.ui.composables.MusicText
+import com.mocharealm.bell.ui.composables.musicShape
+import com.mocharealm.bell.ui.mvi.rememberScreenViewModel
+import com.mocharealm.bell.ui.nav.MusicPage
+import com.mocharealm.bell.ui.nav.musicCorners
+import com.mocharealm.bell.ui.nav.musicSharedContainer
+import com.mocharealm.bell.ui.nav.rememberArtworkLink
+import com.mocharealm.bell.ui.screen.home.composables.MusicShelf
+import com.mocharealm.bell.ui.utils.LocalMusicPlayerPlus
+import com.mocharealm.bell.ui.utils.formatBellString
+import org.jetbrains.compose.resources.stringResource
+
+@Composable
+internal fun HomeScreen(
+    model: BellStore,
+    state: BellState,
+    albums: List<Item>,
+    title: String,
+    navigate: (String) -> Unit,
+) {
+    val text_made_for_you = stringResource(Res.string.made_for_you)
+    val text_home_empty_description = stringResource(Res.string.home_empty_description)
+    val text_no_music = stringResource(Res.string.no_music)
+    val text_music_recommendations = stringResource(Res.string.music_recommendations)
+    val text_recently_added = stringResource(Res.string.recently_added)
+    val text_recently_played = stringResource(Res.string.recently_played)
+    val text_recommended_for_you = stringResource(Res.string.recommended_for_you)
+    val mixTitle = stringResource(Res.string.mix_title)
+    val mixDescription = stringResource(Res.string.mix_description)
+
+    val viewModel = rememberScreenViewModel(model) { HomeViewModel(model) }
+    val observedState by viewModel.state.collectAsState()
+    val screenState = if (state === model.state.value) observedState else viewModel.snapshot(state)
+    val genreShelves =
+        remember(screenState.genres, screenState.albums) {
+            screenState.genres
+                .asSequence()
+                .mapNotNull { genre ->
+                    val matching =
+                        screenState.albums
+                            .asSequence()
+                            .filter {
+                                it.type == "MusicAlbum" &&
+                                    it.genres.any { name -> name.equals(genre.name, true) }
+                            }
+                            .take(12)
+                            .toList()
+                    matching.takeIf { it.isNotEmpty() }?.let { genre to it }
+                }
+                .take(4)
+                .toList()
+        }
+
+    val recommendationList = rememberLazyListState()
+    val mixList = rememberLazyListState()
+    // The row owns its gutters so scrolling cards reach the window edge, not a padded clip.
+    MusicPage(
+        title,
+        horizontalInset = 0.dp,
+        refreshing = state.refreshingHome,
+        onRefresh = { model.accept(BellIntent.PullToRefreshHome) },
+    ) {
+        if (screenState.recommendations.isNotEmpty())
+            item(key = "recommendations", contentType = "recommendations") {
+                Spacer(Modifier.height(24.dp))
+                MusicText(
+                    text_music_recommendations,
+                    24,
+                    weight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
+                Spacer(Modifier.height(4.dp))
+                LazyRow(
+                    Modifier.fillMaxWidth(),
+                    state = recommendationList,
+                    flingBehavior =
+                        rememberSnapFlingBehavior(
+                            recommendationList,
+                            snapPosition = SnapPosition.Start,
+                        ),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(screenState.recommendations, key = { it.id }) { item ->
+                        val link =
+                            rememberArtworkLink(item.id) {
+                                viewModel.accept(HomeIntent.OpenItem(item))
+                            }
+                        val cardShape = musicShape(9.dp)
+                        val reflectionColorFilter = remember {
+                            ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(1.5f) })
+                        }
+                        Box(Modifier.width(240.dp).padding(top = 14.dp).height(320.dp)) {
+                            Box(
+                                Modifier.fillMaxSize()
+                                    .shadow(
+                                        22.dp,
+                                        cardShape,
+                                        clip = false,
+                                        ambientColor = Color.Black.copy(alpha = .125f),
+                                        spotColor = Color.Black.copy(alpha = .125f),
+                                    )
+                            ) {
+                                Box(
+                                    Modifier.fillMaxSize()
+                                        .then(musicSharedContainer(link.key, musicCorners(9.dp)))
+                                        .graphicsLayer {
+                                            compositingStrategy = CompositingStrategy.Offscreen
+                                            clip = true
+                                            shape = cardShape
+                                        }
+                                        .drawWithCache {
+                                            val outline =
+                                                cardShape.createOutline(size, layoutDirection, this)
+                                            onDrawWithContent {
+                                                drawContent()
+                                                drawOutline(
+                                                    outline,
+                                                    Color.DarkGray.copy(alpha = .6f),
+                                                    style = Stroke(width = 5f),
+                                                    blendMode = BlendMode.Overlay,
+                                                )
+                                                drawOutline(
+                                                    outline,
+                                                    Color.DarkGray.copy(alpha = .08f),
+                                                    style = Stroke(width = 5f),
+                                                )
+                                            }
+                                        }
+                                        .clickable(onClick = link.open)
+                                ) {
+                                    MusicArtwork(
+                                        model,
+                                        state,
+                                        item,
+                                        Modifier.align(Alignment.TopCenter)
+                                            .fillMaxWidth()
+                                            .height(240.dp),
+                                        0.dp,
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                        showBorder = false,
+                                    )
+                                    Box(
+                                        Modifier.align(Alignment.BottomCenter)
+                                            .fillMaxWidth()
+                                            .height(200.dp)
+                                            .graphicsLayer {
+                                                compositingStrategy = CompositingStrategy.Offscreen
+                                                clip = true
+                                            }
+                                            .drawWithContent {
+                                                drawContent()
+                                                drawRect(
+                                                    Color.Black.copy(alpha = .3f),
+                                                    blendMode = BlendMode.Overlay,
+                                                )
+                                                drawRect(Color.Black.copy(alpha = .3f))
+                                                drawRect(
+                                                    Brush.verticalGradient(
+                                                        colors =
+                                                            listOf(
+                                                                Color.Transparent,
+                                                                Color(0x4D000000),
+                                                                Color(0xCC000000),
+                                                                Color.Black,
+                                                            ),
+                                                        startY = size.height * .2f,
+                                                        endY = size.height * .6f,
+                                                    ),
+                                                    blendMode = BlendMode.DstIn,
+                                                )
+                                            }
+                                    ) {
+                                        MusicArtwork(
+                                            model,
+                                            state,
+                                            item,
+                                            Modifier.align(Alignment.TopCenter)
+                                                .offset(y = 40.dp)
+                                                .fillMaxWidth()
+                                                .height(240.dp)
+                                                .graphicsLayer {
+                                                    scaleY = -1f
+                                                    colorFilter = reflectionColorFilter
+                                                }
+                                                .blur(48.dp),
+                                            0.dp,
+                                            contentScale =
+                                                androidx.compose.ui.layout.ContentScale.Crop,
+                                            showBorder = false,
+                                            resolutionHint = 96,
+                                        )
+                                    }
+                                    CompositionLocalProvider(LocalMusicPlayerPlus provides false) {
+                                        Column(
+                                            Modifier.align(Alignment.BottomStart)
+                                                .padding(16.dp)
+                                                .graphicsLayer { blendMode = BlendMode.Plus }
+                                        ) {
+                                            MusicText(
+                                                text_recommended_for_you,
+                                                13,
+                                                Color.White.copy(alpha = .4f),
+                                            )
+                                            Spacer(Modifier.height(4.dp))
+                                            MusicText(
+                                                item.name,
+                                                18,
+                                                Color.White,
+                                                FontWeight.SemiBold,
+                                                lines = 2,
+                                            )
+                                            Spacer(Modifier.height(4.dp))
+                                            MusicText(
+                                                item.artist,
+                                                14,
+                                                Color.White.copy(alpha = .5f),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        if (screenState.recentlyPlayed.isNotEmpty())
+            item(key = "recently-played", contentType = "album-shelf") {
+                MusicShelf(text_recently_played, model, state, screenState.recentlyPlayed)
+            }
+        if (screenState.mixes.isNotEmpty())
+            item(key = "mixes", contentType = "mixes") {
+                Spacer(Modifier.height(16.dp))
+                MusicText(
+                    text_made_for_you,
+                    24,
+                    weight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
+                Spacer(Modifier.height(4.dp))
+                LazyRow(
+                    Modifier.fillMaxWidth(),
+                    state = mixList,
+                    flingBehavior =
+                        rememberSnapFlingBehavior(mixList, snapPosition = SnapPosition.Start),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(screenState.mixes, key = { it.seed.id }) { mix ->
+                        val link =
+                            rememberArtworkLink("jellify-mix:${mix.seed.id}") {
+                                viewModel.accept(HomeIntent.OpenMix(mix))
+                            }
+                        Column(Modifier.width(240.dp).clickable(onClick = link.open)) {
+                            Box(
+                                Modifier.height(240.dp)
+                                    .fillMaxWidth()
+                                    .then(musicSharedContainer(link.key, musicCorners(12.dp)))
+                                    .clip(musicShape(12.dp))
+                            ) {
+                                MusicArtwork(
+                                    model,
+                                    state,
+                                    mix.seed,
+                                    Modifier.fillMaxSize(),
+                                    12.dp,
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                )
+                                Box(
+                                    Modifier.fillMaxSize()
+                                        .background(
+                                            Brush.verticalGradient(
+                                                listOf(
+                                                    Color.Transparent,
+                                                    Color.Black.copy(alpha = .7f),
+                                                )
+                                            )
+                                        )
+                                )
+                                MusicText(
+                                    text_made_for_you,
+                                    32,
+                                    Color.White,
+                                    FontWeight.Bold,
+                                    Modifier.align(Alignment.BottomStart).padding(16.dp),
+                                    lines = 2,
+                                )
+                            }
+                            Spacer(Modifier.height(7.dp))
+                            MusicText(
+                                formatBellString(
+                                    mixTitle,
+                                    mix.seed.name,
+                                ),
+                                16,
+                                weight = FontWeight.SemiBold,
+                            )
+                            MusicText(mixDescription, 13, Color.Gray)
+                        }
+                    }
+                }
+            }
+        if (screenState.latest.isNotEmpty())
+            item(key = "recently-added", contentType = "album-shelf") {
+                MusicShelf(text_recently_added, model, state, screenState.latest)
+            }
+        genreShelves.forEach { (genre, matching) ->
+            item(key = "genre:${genre.id}", contentType = "album-shelf") {
+                MusicShelf(genre.name, model, state, matching)
+            }
+        }
+        if (
+            screenState.recommendations.isEmpty() &&
+                screenState.latest.isEmpty() &&
+                !screenState.loading
+        )
+            item(key = "home-empty", contentType = "empty") {
+                EmptyMusic(text_no_music, text_home_empty_description)
+            }
+    }
+}

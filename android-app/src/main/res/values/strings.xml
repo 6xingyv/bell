@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: LicenseRef-Mocha-1.0 -->
+<resources>
+    <string name="app_name">Bell</string>
+    <string name="grant_network_permission">Grant local network access</string>
+    <string name="network_permission_description">Local network access is required to connect to your Jellyfin server.</string>
+    <string name="network_permission_title">Connect to your music server</string>
+    <string name="next_track">Next track</string>
+    <string name="pause">Pause</string>
+    <string name="play">Play</string>
+    <string name="playback_channel">Playback</string>
+    <string name="preparing_playback">Preparing playback…</string>
+    <string name="previous_track">Previous track</string>
+</resources>

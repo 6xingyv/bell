@@ -1,0 +1,210 @@
+Mocha License
+Version 1.0
+
+Copyright (c) 2026 Mocha Realm
+
+SPDX reference: LicenseRef-Mocha-1.0
+
+This license is a source-available license and is not an OSI-approved open-source license.
+
+1. DEFINITIONS
+
+1.1. "Licensor" means each copyright holder who has applied this License to material that the holder is authorized to license, or a person or entity validly authorized to act on that holder's behalf. Where this License refers to the "Project Owner," it means the person or entity identified as the official project operator in the project's licensing notice. The Project Owner may exercise only rights it owns or is authorized to exercise.
+
+1.2. "Software" means source code, executable code, documentation, user-interface assets, and other copyrightable materials expressly identified as licensed under the Mocha License 1.0. Third-Party Materials subject to separate terms are excluded from this definition to the extent those terms govern them.
+
+1.3. "Official Release" means a version of the Software published or expressly designated as official by the Project Owner.
+
+1.4. "Modified Version" means a copy or adaptation containing changes to protected expression in the Software, other than Permitted Packaging Changes. A work independently created without copying protected expression is not a Modified Version merely because it has similar features, behavior, or compatible interfaces.
+
+1.5. "Permitted Packaging Changes" means changes strictly necessary for building, packaging, installing, signing, or distributing an otherwise unmodified version on a supported or target platform, as described in Section 4.3.
+
+1.6. "Public Distribution" means reproducing or making copies of the Software available to the public or any generally accessible group, including via code-hosting platforms, application stores, download sites, package repositories, or physical media. Development Forks and patches permitted under Section 5 are excluded from the prohibition on Public Distribution of Modified Versions, subject to Section 5's conditions.
+
+1.7. "Development Fork" means a copy or branch made available primarily for development, review, testing, research, or contributing to the official project, and not operated, packaged, or promoted as an independent end-user release.
+
+1.8. "Independent Extension" means independently created plugins, themes, adapters, integrations, companion software, and similar works that interoperate with the Software without incorporating its protected expression beyond what is independently authorized.
+
+1.9. "Monetization" has the meaning stated in Section 7.
+
+1.10. "Third-Party Materials" means code, content, services, or other materials whose rights are held by third parties and which are governed by separate legal rights or license terms.
+
+1.11. "You" means the individual or legal entity exercising rights under this License.
+
+2. GRANT OF COPYRIGHT LICENSE
+
+Subject to this License and to the extent the Licensor holds the relevant rights, the Licensor grants You a worldwide, non-exclusive, royalty-free license, for the duration of the applicable copyright, to:
+
+(a) obtain, inspect, study, store, and reproduce the Software;
+(b) compile, install, execute, and use the Software;
+(c) modify the Software for personal use, internal organizational use, education, research, testing, and development;
+(d) create reasonable backup and archival copies;
+(e) redistribute unmodified copies in accordance with Section 4;
+(f) create and publish Development Forks and patches in accordance with Section 5; and
+(g) develop and distribute Independent Extensions in accordance with Section 8.
+
+These permissions apply to individuals, nonprofit organizations, public bodies, and commercial organizations, including ordinary internal use within a commercial organization. Distributing independent end-user Modified Versions or Monetizing the Software is not permitted unless expressly allowed by this License or a separate written authorization.
+
+3. OWNERSHIP AND RIGHTS RESERVED
+
+3.1. Copyright and other intellectual property rights remain with their respective owners. Receipt, use, modification, or possession of the Software does not transfer ownership.
+
+3.2. You may own original expression that You create in Your modifications, subject to applicable law. That ownership does not authorize distribution of underlying protected Software beyond the permissions granted here.
+
+3.3. All rights not expressly granted are reserved. Nothing in this License grants exclusive rights in ideas, principles, algorithms, functionality, methods of operation, protocols, or independently created compatible implementations that are not protected by applicable intellectual property law.
+
+4. REDISTRIBUTION OF UNMODIFIED SOFTWARE
+
+4.1. You may freely copy and redistribute unmodified Software in source or executable form, including Official Releases, through repositories, mirrors, websites, application stores, archives, physical media, or as preinstalled software on devices, subject to Sections 4 and 7.
+
+4.2. When redistributing, You must: (a) preserve applicable copyright, attribution, License, and third-party notices; (b) include this License or a reasonably accessible copy of it; (c) accurately identify the version and whether a binary was built or signed by a third party; (d) avoid falsely claiming official endorsement, certification, or origin; and (e) not impose restrictions purporting to remove recipients' permissions under this License. Each recipient obtains permissions under this License directly from the relevant Licensor.
+
+4.3. You may rebuild from unmodified source and make Permitted Packaging Changes, such as adjusting installation paths, package manifests, distribution-required package identifiers, build flags, dependency declarations, packaging scripts, code-signing certificates, or installation metadata. Such changes must not intentionally add or alter application features, user-interface design, network destinations, advertising, telemetry, payment terms, security controls, or privacy behavior. Copies meeting these conditions count as unmodified for Sections 4 and 7. This exception does not permit functional source-code patches merely to address platform compatibility.
+
+4.4. A commercial device may include the unmodified Software at no separate attributable charge. Sale of the device itself does not constitute Monetization solely because it includes the Software. Payment specifically for inclusion, access, or promotion of the Software may constitute Monetization under Section 7.
+
+4.5. Free distribution through a generally advertising-supported download site is allowed where access to the Software is not conditioned on payment and the advertising is not inserted into the Software. Paid ancillary services and reasonable cost reimbursement are addressed in Section 7.2.
+
+4.6. Nothing in this Section limits rights of lawful owners of particular copies under applicable first-sale, exhaustion, or equivalent rules.
+
+5. PRIVATE MODIFICATION, DEVELOPMENT FORKS, AND MODIFIED RELEASES
+
+5.1. Private and internal modification. You may create and use Modified Versions for Your own purposes or within Your organization. Access by employees or contractors acting on behalf of that organization is permitted for those internal purposes, provided the activity does not become an independent public offering or unauthorized Monetization.
+
+5.2. Development collaboration. You may create and publicly host Development Forks and publish patches, proposed changes, issue reproductions, and research material for development, review, testing, and contributions. Such material must be clearly identified as unofficial. Mere public visibility of a development repository does not make it an authorized independent product release.
+
+5.3. Development Fork limitations. This exception does not permit distributing a Modified Version as an independent end-user application, including by publishing prebuilt end-user installers or release artifacts, app-store listings, public update channels, or a separately marketed product. It also does not permit presenting a Development Fork as an official or endorsed release. GitHub or similar platforms may provide separate platform-level rights that are not withdrawn by this License.
+
+5.4. Modified releases. Except as allowed under Sections 4 and 5.2, Public Distribution of a Modified Version—in source or executable form, free of charge or paid, and regardless of rebranding—requires prior written authorization from the Project Owner or another authorized rights holder.
+
+5.5. A separate distribution authorization may specify approved changes, platforms, distribution channels, duration, attribution, quality or security requirements, and branding. Permission for one Modified Version does not grant permission for others.
+
+5.6. Submission of a patch or pull request, or its acceptance into an official release, does not by itself authorize independent distribution of another Modified Version.
+
+5.7. Nothing in this License prohibits legally permitted security analysis, vulnerability disclosure, interoperability research, or publication of findings and lawful excerpts.
+
+6. DEVELOPMENT AND MAINTENANCE GOVERNANCE
+
+6.1. The Project Owner may determine the design, roadmap, accepted contributions, release schedule, supported platforms, official builds, and maintainers of the official project, subject to the rights of other rights holders and applicable law.
+
+6.2. No person gains project governance, official release authority, or ownership merely by contributing, maintaining a fork, donating, or using the Software.
+
+6.3. Project inactivity, a decision not to add features, end of support, discontinuation, or inability to contact the Project Owner does not automatically expand the permissions granted here or authorize public releases of Modified Versions.
+
+6.4. The Project Owner may appoint successors or delegates and may transfer or license rights it validly controls. This provision does not transfer rights belonging to third parties or extend expired intellectual property rights.
+
+7. MONETIZATION AND COMMERCIAL RECIPROCITY
+
+7.1. "Monetization" means making the Software, or access to its functionality, an identifiable part of a paid product, paid entitlement, commercial offering, or revenue-generating service, regardless of whether net profit is achieved. It includes: (a) charging for copies or access; (b) charging license, subscription, or membership fees for the Software or its functionality; (c) offering the Software as a paid hosted or managed service; (d) including advertising, paid promotions, or sponsorships inside the Software for revenue; (e) charging consideration specifically for preinstallation, inclusion, promotion, or integration of the Software; or (f) offering access to the Software as a material, separately charged benefit of another commercial offering.
+
+7.2. The following do not constitute Monetization merely by occurring: (a) ordinary personal or organizational use, including use by a business or its employees; (b) free distribution of unmodified Software; (c) general advertising on a separate website offering free unmodified downloads, without altering or paywalling the Software; (d) free preinstallation on a device that is itself sold; (e) genuinely voluntary donations or grants that confer no paid features, access conditions, or preferential software entitlements; (f) reasonable, separately identified reimbursement of actual media, delivery, installation-assistance, or similar ancillary costs, without charging for the Software itself; (g) sale or licensing of independently created extensions; and (h) operation of an independent music, storage, or media service merely because a customer chooses to access it using the Software.
+
+7.3. Section 7.2 does not cover arrangements whose actual substance is payment for the Software, its hosted execution, or its functionality—regardless of whether the charges are labeled as support, maintenance, consulting, or service fees.
+
+7.4. Monetization that relies on copyright permissions beyond this License requires separate written commercial authorization from the relevant rights holder. Where a separate enforceable contract applies, Monetization obligations are governed by that contract and applicable law. Nothing here prohibits activities that do not legally require the rights holder's permission.
+
+7.5. A commercial agreement may provide for fixed fees, revenue-based payments, code contributions, maintenance commitments, infrastructure support, or other negotiated reciprocity. No default percentage, debt, royalty, payment obligation, or entitlement to purchase a license is created by this License alone.
+
+7.6. Permission to Monetize does not itself authorize Public Distribution of Modified Versions. Permission to distribute a Modified Version does not itself authorize Monetization. A separate agreement may expressly grant either or both permissions.
+
+8. INDEPENDENT EXTENSIONS AND INTEROPERABILITY
+
+8.1. Independently created plugins, themes, adapters, integrations, and companion applications may be developed, used, distributed, licensed, and sold under terms chosen by their authors. Their mere interaction with the Software through a documented or otherwise lawfully used interface does not make them subject to this License.
+
+8.2. This Section does not authorize incorporation or redistribution of protected portions of the Software beyond permissions separately granted or provided by law.
+
+8.3. Nothing in this License restricts lawful observation, study, reverse engineering, decompilation, independent implementation, or interoperability activities to the extent protected by mandatory applicable law.
+
+9. PATENT LICENSE
+
+9.1. To the extent the relevant Licensor owns or controls the patent claims and has authority to license them, the Licensor grants You a worldwide, non-exclusive, royalty-free patent license to make, have made, use, and distribute the Software only as necessary to exercise permissions expressly granted by this License.
+
+9.2. The grant covers patent claims necessarily infringed by the Software as provided by that Licensor. It does not extend to unrelated third-party materials, independent additions, or combinations whose infringement arises solely from changes outside the supplied Software.
+
+9.3. No patent license is implied for activities outside the permissions expressly granted, except where applicable law independently permits them.
+
+10. TRADEMARKS AND OFFICIAL IDENTITY
+
+10.1. No general license to use the Project Owner's trademarks, product names, logos, domain names, or certification marks is granted.
+
+10.2. You may accurately identify the Software and reproduce branding contained in an unmodified copy where reasonably necessary for the permitted redistribution of that copy, subject to applicable law.
+
+10.3. You must not falsely imply that a modified, repackaged, or independently developed product is official, endorsed, sponsored, or certified. Lawful descriptive, nominative, and other statutory trademark uses remain unaffected.
+
+11. THIRD-PARTY MATERIALS, MEDIA, AND SERVICES
+
+11.1. Third-Party Materials remain governed by their own copyrights, patents, licenses, and terms. This License does not replace or restrict permissions granted independently by those rights holders.
+
+11.2. No rights or permissions are granted with respect to music recordings, compositions, lyrics, album art, audiovisual works, metadata, online accounts, or remote services merely because the Software can access or process them. You and any service operator remain responsible for obtaining required permissions under applicable law and third-party terms.
+
+12. CONTRIBUTIONS AND INBOUND RIGHTS
+
+12.1. Contributing does not automatically transfer a contributor's copyright ownership to the Project Owner.
+
+12.2. The Project Owner may require contributions to be offered under separate, conspicuously disclosed Contribution Terms or a Contributor License Agreement, including terms permitting commercial licensing and future relicensing. Such rights arise only when the applicable contribution terms have been validly accepted or otherwise legally granted.
+
+12.3. Submission of a pull request alone does not authorize the Project Owner to take rights greater than those actually granted by the relevant contributor or other rights holder. Contributors must have authority to license their submissions; the Project Owner may reject or remove contributions lacking adequate rights.
+
+13. RELICENSING AND LICENSE EVOLUTION
+
+13.1. Any rights holder may publish or license material it owns under additional or different terms. To the extent it has obtained sufficient rights from contributors and third parties, the Project Owner may relicense both current and historical Project code under later versions of the Mocha License, permissive or copyleft open-source licenses, source-available licenses, proprietary licenses, or commercial agreements.
+
+13.2. The Project Owner may cease offering future official copies under previous terms. This does not itself revoke previously granted permissions for copies lawfully obtained under those terms.
+
+13.3. Recipients do not obtain authority to relicense other rights holders' material merely because the Project Owner possesses such authority. Rights already lawfully granted to recipients remain subject to their applicable terms and any lawful termination provisions.
+
+13.4. This Section does not itself obtain contributor rights, remove third-party license requirements, or override mandatory statutory termination or other non-waivable rights.
+
+14. NO SUPPORT OBLIGATION
+
+Unless otherwise required by mandatory law or separately agreed in writing, the Licensor does not promise continuing development, new features, security fixes, compatibility updates, availability of downloads, or support. This Section does not displace legally mandatory duties relating to conformity, safety, security, or consumer protection.
+
+15. DURATION, BREACH, AND TERMINATION
+
+15.1. Permissions under this License continue for the applicable term of protection unless validly terminated. Statutory rights survive independently of this License.
+
+15.2. A material breach of a condition limiting a copyright or patent grant places the affected activity outside that grant and may terminate the permissions concerned to the extent allowed by applicable law. This does not predetermine whether every breach constitutes copyright infringement rather than a contractual claim.
+
+15.3. For a first remediable breach, affected permissions are provisionally restored once the breach ceases, and permanently restored if no ongoing harm remains and the Licensor does not notify You of the breach within 90 days after cessation. If the Licensor gives notice, permissions are permanently restored if You fully remedy the breach within 30 days after receiving that notice. This cure mechanism does not prevent reasonable urgent measures against continuing infringement or legally recognized harm.
+
+15.4. A repeated, deliberate, or non-remediable violation may be addressed through remedies available under applicable law. Termination of Your permissions does not automatically terminate independently obtained permissions of compliant downstream recipients.
+
+15.5. Ownership, third-party rights, accrued claims, liability limitations where valid, and other provisions intended to survive continue to the extent permitted by law.
+
+16. WARRANTIES AND LIABILITY
+
+16.1. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE," WITHOUT EXPRESS OR IMPLIED WARRANTIES, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, NON-INFRINGEMENT, OR UNINTERRUPTED OPERATION.
+
+16.2. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE LICENSOR AND CONTRIBUTORS SHALL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING FROM THE SOFTWARE OR ITS USE, INCLUDING LOSS OF DATA, REVENUE, OR BUSINESS OPPORTUNITIES.
+
+16.3. Nothing in this License excludes or limits liability for fraud, intentional misconduct, gross negligence, death or personal injury, or any other loss or obligation to the extent exclusion or limitation is prohibited by mandatory law. Mandatory statutory warranties, consumer remedies, digital-product duties, and product-liability rules are preserved.
+
+17. MANDATORY LAW AND NON-WAIVABLE RIGHTS
+
+Nothing in this License waives or limits rights that cannot lawfully be excluded, including as applicable statutory rights regarding necessary software reproduction or adaptation, backups, observation and study, interoperability, security research, exhaustion and lawful transfer of copies, copyright exceptions, moral rights, statutory termination, consumer protection, and the expiration of intellectual property rights. A right existing independently under mandatory law does not depend on acceptance of this License.
+
+18. DISPUTES AND APPLICABLE LAW
+
+18.1. Intellectual property ownership, scope, validity, infringement, and statutory exceptions are governed by the law applicable to the particular rights and claims.
+
+18.2. To the extent permitted by applicable law, contractual questions under this License are governed by the laws of the jurisdiction where the Project Owner is domiciled or headquartered, without regard to conflict-of-laws principles, unless the parties validly agree otherwise in a separate written agreement.
+
+18.3. Proceedings may be brought before a court of competent jurisdiction. Nothing in this License deprives a consumer or other protected person of mandatory legal protections or jurisdictional rights.
+
+19. SEVERABILITY AND INTERPRETATION
+
+19.1. An invalid or unenforceable provision is ineffective only to the extent of its invalidity. Remaining provisions continue to the extent permitted by law and consistent with this License's essential purpose.
+
+19.2. Section headings are for convenience. A failure to enforce a provision does not by itself waive it.
+
+19.3. This English-language text is the authoritative version to the extent permitted by law. Translations are informational unless expressly designated as authoritative by the Project Owner and the relevant Licensor.
+
+20. ACCEPTANCE AND SEPARATE AGREEMENTS
+
+20.1. Exercising permissions offered by this License is subject to their stated scope and conditions. Merely viewing, reading, receiving, or possessing a copy does not by itself create obligations beyond those validly imposed by applicable law.
+
+20.2. Where a particular obligation requires contractual assent under applicable law, that assent must be validly obtained. Nothing in this License makes all restrictions independently enforceable as contract terms against persons who have not validly agreed to them.
+
+20.3. A separate written agreement may grant additional or different permissions and may control as between its parties within its expressly defined scope. It cannot diminish the independent rights of nonparties or rights preserved by mandatory law.
+
+END OF MOCHA LICENSE 1.0

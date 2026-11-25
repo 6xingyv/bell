@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/6xingyv/Glasmio.git
+	branch = main
+	commit = 1077acb2719b87b56021f81b33da058ed1f369cf
+	parent = 130f17d27ff5ce84557a779bc4c2cd3bb7cc0a6b
+	method = merge
+	cmdver = 0.4.9

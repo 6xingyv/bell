@@ -1,0 +1,39 @@
+# Rust
+/target/
+/.zig-cache/
+/zig-out/
+**/*.rs.bk
+
+# Android
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/local.properties
+/local.properties
+/.gradle/
+/build/
+*.iml
+.idea/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# ffmpeg
+/ffmpeg-android-build/
+/ffmpeg-android-shared/
+/ffmpeg-windows-shared/
+
+# Any built binaries/libraries
+*.so
+*.dll
+*.dylib
+*.exe
+android/app/src/main/assets/yamnet.tflite
+
+# ML training artifacts (large and reproducible; keep out of Git)
+/mobile_gpu_vocal_suppression/data/targets/
+/mobile_gpu_vocal_suppression/data/targets-v2/
+/mobile_gpu_vocal_suppression/data/targets-v3/
+/mobile_gpu_vocal_suppression/runs/
+**/__pycache__/

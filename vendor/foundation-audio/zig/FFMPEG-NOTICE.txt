@@ -1,0 +1,19 @@
+This software uses libraries from the FFmpeg project (https://ffmpeg.org/)
+under the GNU Lesser General Public License, version 2.1 or later.
+
+FFmpeg remains a set of independently linked, replaceable shared libraries.
+The foundation.audio build disables GPL, nonfree and version3 components.
+COPYING.LGPLv2.1 and FFmpeg's LICENSE.md accompany this notice. The exact
+source revision, configure options, build configuration and changes.diff are
+included for each target. The distribution bundle includes corresponding
+FFmpeg source in sources/ffmpeg-source.tar.gz.
+
+When distributing an application, include the notices in its About/licenses
+screen, provide the matching source alongside its binary download, and make
+sure the application's terms do not prohibit actions permitted by the LGPL,
+including debugging modifications to these libraries. Preserve the ability to
+use compatible modified FFmpeg libraries. Dynamic linking alone does not
+fulfil every distribution obligation. App-store terms and codec patent issues
+require a separate assessment for the actual distribution.
+
+FFmpeg's own guidance: https://ffmpeg.org/legal.html

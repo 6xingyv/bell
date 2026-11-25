@@ -1,0 +1,113 @@
+name: Release packages
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  packages:
+    permissions:
+      contents: write
+    uses: ./.github/workflows/build.yml
+    with:
+      release: true
+    secrets: inherit
+  screenshots:
+    needs: packages
+    uses: ./.github/workflows/screenshots.yml
+  publish:
+    needs: [packages, screenshots]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Download signed packages
+        uses: actions/download-artifact@v7
+        with:
+          name: bell-android
+          path: release-assets
+      - name: Download screenshots
+        uses: actions/download-artifact@v7
+        with:
+          name: bell-screenshots
+          path: release-screenshots
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          mkdir -p release-assets-renamed
+          while IFS= read -r -d '' file; do
+            relative="${file#release-assets/}"
+            if [[ "/$relative/" == */performance/* ]]; then
+              echo "Skipping performance package: $relative"
+              continue
+            fi
+            asset_name="${relative//\//-}"
+            cp "$file" "release-assets-renamed/$asset_name"
+          done < <(find release-assets -type f -print0)
+          mapfile -d '' assets < <(find release-assets-renamed -type f -print0)
+          test "${#assets[@]}" -gt 0
+          assets+=(release-screenshots/*.png)
+          revision_range="$GITHUB_SHA"
+          note_options=()
+          if previous_tag=$(git describe --tags --abbrev=0 --first-parent --match 'v[0-9]*' "$GITHUB_SHA^" 2>/dev/null); then
+            revision_range="$previous_tag..$GITHUB_SHA"
+            note_options+=(--notes-start-tag "$previous_tag")
+          fi
+          translation_locales=$(git log --format=%s "$revision_range" |
+            sed -nE 's/^l10n\(([A-Za-z0-9-]+)\):.*/\1/p' | LC_ALL=C sort -u)
+          if [[ -n "$translation_locales" ]]; then
+            translation_notes=$(
+              printf '## Translations\n\n'
+              while IFS= read -r locale; do
+                printf -- '- Updated `%s` translations.\n' "$locale"
+              done <<< "$translation_locales"
+            )
+            note_options+=(--notes "$translation_notes")
+          fi
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            exit 0
+          fi
+          gh release create "$GITHUB_REF_NAME" "${assets[@]}" \
+            --verify-tag \
+            --title "Bell $GITHUB_REF_NAME" \
+            --generate-notes "${note_options[@]}"
+      - name: Update the README screenshots
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        shell: bash
+        run: |
+          gh auth setup-git
+          preview="$RUNNER_TEMP/bell-readme"
+          git fetch origin "$DEFAULT_BRANCH"
+          git worktree add --detach "$preview" FETCH_HEAD
+          git -C "$preview" config user.name 'github-actions[bot]'
+          git -C "$preview" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+            latest=$(gh api "repos/$GH_REPO/releases/latest" --jq .tag_name)
+            if [[ "$latest" != "$GITHUB_REF_NAME" ]]; then
+              exit 0
+            fi
+            git -C "$preview" fetch origin "$DEFAULT_BRANCH"
+            git -C "$preview" switch --detach FETCH_HEAD
+            mkdir -p "$preview/docs/img/screenshots"
+            cp release-screenshots/*.png "$preview/docs/img/screenshots/"
+            git -C "$preview" add docs/img/screenshots
+            git -C "$preview" diff --cached --quiet && exit 0
+            git -C "$preview" commit -m "docs: refresh screenshots for $GITHUB_REF_NAME"
+            if git -C "$preview" push origin "HEAD:$DEFAULT_BRANCH"; then
+              exit 0
+            fi
+          done
+          exit 1

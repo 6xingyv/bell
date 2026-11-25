@@ -1,0 +1,115 @@
+name: Check and package Bell
+on:
+  workflow_call:
+    inputs:
+      release:
+        type: boolean
+        default: false
+permissions:
+  contents: write
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      ORG_GRADLE_PROJECT_foundationAudioDir: ${{ github.workspace }}/vendor/foundation-audio
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: true
+          submodules: recursive
+      - uses: ./.github/actions/setup
+      - name: Apply Spotless and rewrite the pushed commit
+        shell: bash
+        run: |
+          bash ./gradlew --no-daemon --max-workers=2 spotlessApply
+          if [[ "$GITHUB_EVENT_NAME" != push && "$GITHUB_EVENT_NAME" != workflow_dispatch || \
+            "$GITHUB_REF_TYPE" != branch ]]; then
+            exit 0
+          fi
+          git add -u
+          if git diff --cached --quiet; then
+            echo 'Spotless made no changes.'
+            exit 0
+          fi
+          git config user.name 'Simon Scholz'
+          git config user.email 'Simon.Sleeeep@outlook.com'
+          git commit --amend --no-edit
+          git push --force-with-lease="refs/heads/${GITHUB_REF_NAME}:${GITHUB_SHA}" \
+            origin "HEAD:refs/heads/${GITHUB_REF_NAME}"
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: '0.17.0'
+      - name: Cache shared FFmpeg builds
+        uses: actions/cache@v5
+        with:
+          path: vendor/foundation-audio/ffmpeg-android-shared
+          key: ffmpeg-android-${{ runner.os }}-${{ hashFiles('vendor/foundation-audio/ffmpeg-build.gradle.kts', 'vendor/foundation-audio/.gitmodules', 'vendor/foundation-audio/tools/ffmpeg-audio-config.json') }}-239f2c733de4
+      - name: Build Zig audio and distribution
+        shell: bash
+        run: |
+          args=()
+          test -f "$ORG_GRADLE_PROJECT_foundationAudioDir/ffmpeg-android-shared/arm64-v8a/lib/libavformat.so" || args+=(-PrebuildFfmpeg)
+          bash ./gradlew -p "$ORG_GRADLE_PROJECT_foundationAudioDir" --no-daemon --max-workers=2 \
+            "-Pffmpeg.wsl.workRoot=$RUNNER_TEMP/foundation-ffmpeg" "${args[@]}" buildAndroidNative packageAudioDistribution
+      - name: Configure package version
+        env:
+          RELEASE: ${{ inputs.release }}
+        run: |
+          version="0.1.0-${GITHUB_SHA:0:12}-SNAPSHOT"
+          if [[ "$RELEASE" == true ]]; then
+            test "$GITHUB_REF_TYPE" = tag
+            version="${GITHUB_REF_NAME#v}"
+          fi
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+          echo "ORG_GRADLE_PROJECT_releaseVersion=$version" >> "$GITHUB_ENV"
+          echo "ORG_GRADLE_PROJECT_versionCode=$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
+      - name: Configure MochaRealm signing
+        env:
+          STORE_BASE64: ${{ secrets.RELEASE_STORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          RELEASE: ${{ inputs.release }}
+        run: |
+          if [[ -z "$STORE_BASE64" ]]; then
+            test "$RELEASE" != true
+            echo 'Signing secrets unavailable; CI packages will be unsigned.'
+            exit 0
+          fi
+          test -n "$STORE_PASSWORD" && test -n "$KEY_ALIAS" && test -n "$KEY_PASSWORD"
+          umask 077
+          printf '%s' "$STORE_BASE64" | base64 --decode > "$RUNNER_TEMP/mocharealm.jks"
+          echo "RELEASE_STORE_FILE=$RUNNER_TEMP/mocharealm.jks" >> "$GITHUB_ENV"
+      - name: Check formatting, JVM tests and Android lint
+        run: bash ./gradlew --no-daemon --max-workers=2 :check
+      - name: Package optimized APKs and app bundle
+        env:
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: bash ./gradlew --no-daemon --max-workers=2 :android-app:assemblePerformance :android-app:assembleRelease :android-app:bundleRelease
+      - name: Upload packages, audio sources and R8 mappings
+        uses: actions/upload-artifact@v7
+        with:
+          name: bell-android
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            android-app/build/outputs/apk/performance/*.apk
+            android-app/build/outputs/apk/release/*.apk
+            android-app/build/outputs/bundle/release/*.aab
+            android-app/build/outputs/mapping/**/mapping.txt
+            vendor/foundation-audio/build/distributions/*.zip
+      - name: Upload check reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: bell-check-reports
+          retention-days: 14
+          path: |
+            android-app/build/reports/
+            shared/build/reports/
+      - name: Remove signing material
+        if: always()
+        run: rm -f -- "$RUNNER_TEMP/mocharealm.jks"

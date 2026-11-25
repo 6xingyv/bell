@@ -1,0 +1,18 @@
+[package]
+name = "engine"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "engine"
+crate-type = ["rlib"]
+
+[dependencies]
+anyhow = "1.0.102"
+ringbuf = "0.4.8"
+ffmpeg-next = "8.1.0"
+types = { path = "../types" }
+util = { path = "../util" }
+source = { path = "../source" }
+renderer = { path = "../renderer" }
+queue = { path = "../queue" }

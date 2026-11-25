@@ -1,0 +1,103 @@
+appId: com.mocharealm.bell
+name: Bell README phone screenshots
+---
+- setOrientation: PORTRAIT
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: Connect to library
+    timeout: 30000
+- tapOn: Jellyfin server address
+- inputText: ${BELL_SERVER}
+- tapOn: Username
+- inputText: Demo
+- tapOn: Password
+- inputText: bell-demo-preview
+- hideKeyboard
+- tapOn: Connect to library
+- extendedWaitUntil:
+    visible: Recently added
+    timeout: 45000
+- tapOn: Harvest Moon artwork
+- extendedWaitUntil:
+    visible: Shine On, Harvest Moon
+    timeout: 30000
+- tapOn:
+    text: Shine On, Harvest Moon
+    index: 0
+- extendedWaitUntil:
+    visible: Pause
+    timeout: 30000
+- tapOn: Pause
+- tapOn: Back
+- tapOn: Home
+- extendedWaitUntil:
+    visible: Recently played
+    timeout: 30000
+- assertVisible: Music recommendations
+- repeat:
+    times: 5
+    commands:
+      - swipe:
+          start: 12%,38%
+          end: 92%,38%
+          duration: 220
+- waitForAnimationToEnd
+- takeScreenshot: home-phone
+- tapOn: Library
+- assertVisible: Harvest Moon artwork
+- assertVisible: Recently added
+- waitForAnimationToEnd
+- takeScreenshot: library-phone
+# The collapsed Glasmio search control is icon-only in this phone layout.
+- tapOn:
+    point: 88%,96%
+- extendedWaitUntil:
+    visible: Jazz
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: search-phone
+- pressKey: Back
+- tapOn: Harvest Moon artwork
+- extendedWaitUntil:
+    visible: He Wants Someone to Call Him Papa
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: album-phone
+- tapOn:
+    text: More
+    rightOf: Shine On, Harvest Moon
+    above: He Wants Someone to Call Him Papa
+# Glasmio exposes the menu visually but omits its rows from Android accessibility.
+- tapOn:
+    point: 64%,44%
+- waitForAnimationToEnd
+- takeScreenshot: album-artists-phone
+- tapOn:
+    point: 12%,78%
+- extendedWaitUntil:
+    visible: He Wants Someone to Call Him Papa
+    timeout: 10000
+- waitForAnimationToEnd
+- tapOn:
+    text: Shine On, Harvest Moon artwork
+    below: He Wants Someone to Call Him Papa
+- extendedWaitUntil:
+    visible: Playback progress
+    timeout: 30000
+# Seek to the middle of the chorus before opening lyrics.
+- tapOn: Playback progress
+- waitForAnimationToEnd
+- takeScreenshot: now-playing-phone
+- tapOn: Lyrics
+- waitForAnimationToEnd
+- assertNotVisible: No lyrics available
+- takeScreenshot: lyrics-phone
+- tapOn: Lyrics
+- tapOn: Audio output
+
+- waitForAnimationToEnd
+- takeScreenshot: audio-output-phone
+- pressKey: Back
