@@ -440,6 +440,22 @@ internal fun PlayerScreen(
                         spring(dampingRatio = 1f, stiffness = 420f),
                         label = "player header",
                     )
+                val coverPaused = screenState.audio.paused
+                val pausedCoverScale by
+                    animateFloatAsState(
+                        if (coverPaused) .8f else 1f,
+                        animationSpec =
+                            if (coverPaused)
+                                tween(
+                                    480,
+                                    easing = Easing { fraction ->
+                                        val inverse = 1f - fraction
+                                        1f - inverse * inverse * inverse * inverse
+                                    },
+                                )
+                            else spring(dampingRatio = .65f, stiffness = 150f),
+                        label = "paused cover scale",
+                    )
                 QueueGlassHost(
                     queueDrag.key != null,
                     Modifier.fillMaxSize(),
@@ -865,6 +881,12 @@ internal fun PlayerScreen(
                                         item,
                                         Modifier.offset(x = coverX, y = coverTop)
                                             .size(coverSide)
+                                            .graphicsLayer {
+                                                val scale =
+                                                    1f - (1f - pausedCoverScale) * (1f - compact)
+                                                scaleX = scale
+                                                scaleY = scale
+                                            }
                                             .then(
                                                 if (panel == PlayerPanel.Cover) dragModifier
                                                 else
