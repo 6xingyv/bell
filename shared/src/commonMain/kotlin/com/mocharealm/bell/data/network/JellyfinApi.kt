@@ -426,6 +426,14 @@ class JellyfinApi(val client: HttpClient, private val deviceName: () -> String =
         return result["Id"]!!.jsonPrimitive.content
     }
 
+    override suspend fun setPlaylistCover(s: Session, id: String, jpeg: ByteArray) {
+        client.post("${s.server}/Items/$id/Images/Primary") {
+            authenticate(s)
+            contentType(ContentType.Image.JPEG)
+            setBody(kotlin.io.encoding.Base64.encode(jpeg))
+        }
+    }
+
     override suspend fun renamePlaylist(s: Session, item: Item, name: String) {
         client.post("${s.server}/Playlists/${item.id}") {
             authenticate(s)

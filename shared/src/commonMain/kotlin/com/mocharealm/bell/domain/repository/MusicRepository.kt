@@ -96,6 +96,8 @@ interface MusicRepository {
 
     suspend fun createPlaylist(s: Session, name: String, ids: List<String>): String
 
+    suspend fun setPlaylistCover(s: Session, id: String, jpeg: ByteArray)
+
     suspend fun itemDocument(s: Session, id: String): JsonObject
 
     suspend fun artworkBytes(source: String): ByteArray

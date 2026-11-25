@@ -95,7 +95,11 @@ sealed interface BellIntent {
 
     data class AddToPlaylist(val playlist: Item, val items: List<Item>) : BellIntent
 
-    data class CreatePlaylist(val name: String, val items: List<Item>) : BellIntent
+    data class CreatePlaylist(
+        val name: String,
+        val items: List<Item>,
+        val cover: ByteArray? = null,
+    ) : BellIntent
 
     data class RenamePlaylist(val item: Item, val name: String) : BellIntent
 

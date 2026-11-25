@@ -108,6 +108,7 @@ internal fun musicSymbolCodePoint(name: String): Int? =
         "pause.fill" -> 0x100286
         "pencil" -> 0x10020A
         "person.fill" -> 0x10026A
+        "photo" -> 0x1003C5
         "pin" -> 0x1003A6
         "play.fill" -> 0x100284
         "plus" -> 0x10017C

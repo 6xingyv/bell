@@ -119,7 +119,10 @@
     <string name="name_descending">Name, descending</string>
 
 
-    <string name="new_playlist">New playlist</string>
+    <string name="new_playlist">New Playlist</string>
+    <string name="playlist_title">Playlist Title</string>
+    <string name="choose_playlist_cover">Choose playlist cover</string>
+    <string name="error_playlist_cover">Could not open the selected photo</string>
     <string name="next_track">Next track</string>
     <string name="nothing_playing">Nothing playing</string>
     <string name="open">Open</string>

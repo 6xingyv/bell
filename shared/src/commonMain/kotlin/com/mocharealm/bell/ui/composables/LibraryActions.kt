@@ -241,7 +241,6 @@ fun MusicLibraryDialog(model: BellStore, state: BellState) {
     val text_add_music = stringResource(Res.string.add_music)
     val text_add_to_playlist = stringResource(Res.string.add_to_playlist)
     val text_cancel = stringResource(Res.string.cancel)
-    val text_create = stringResource(Res.string.create)
     val text_delete = stringResource(Res.string.delete)
     val text_edit_playlist = stringResource(Res.string.edit_playlist)
     val text_add_song_count = stringResource(Res.string.add_song_count)
@@ -351,19 +350,14 @@ fun MusicLibraryDialog(model: BellStore, state: BellState) {
                     }
                 }
             }
-        is LibraryDialog.CreatePlaylist -> {
-            var name by remember(dialog) { mutableStateOf("") }
-            MusicActionSheet(text_new_playlist, dismiss) {
-                BellField(name, { name = it }, text_name)
-                Spacer(Modifier.height(20.dp))
-                BellButton(
-                    text_create,
-                    { model.accept(BellIntent.CreatePlaylist(name, dialog.items)) },
-                    Modifier.fillMaxWidth(),
-                    name.isNotBlank() && !state.loading,
-                )
+        is LibraryDialog.CreatePlaylist ->
+            key(dialog) {
+                NewPlaylistSheet(state.loading, state.policy.admin, state.error, dismiss) {
+                    name,
+                    cover ->
+                    model.accept(BellIntent.CreatePlaylist(name, dialog.items, cover))
+                }
             }
-        }
         is LibraryDialog.EditPlaylist -> {
             var name by remember(dialog) { mutableStateOf(dialog.item.name) }
             MusicActionSheet(text_edit_playlist, dismiss) {

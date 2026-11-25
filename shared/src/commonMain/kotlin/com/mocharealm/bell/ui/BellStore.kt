@@ -117,7 +117,7 @@ class BellStore(
             is BellIntent.SuggestLess -> suggestLess(intent.item)
             is BellIntent.Dialog -> dialog(intent.value)
             is BellIntent.AddToPlaylist -> addToPlaylist(intent.playlist, intent.items)
-            is BellIntent.CreatePlaylist -> createPlaylist(intent.name, intent.items)
+            is BellIntent.CreatePlaylist -> createPlaylist(intent.name, intent.items, intent.cover)
             is BellIntent.RenamePlaylist -> renamePlaylist(intent.item, intent.name)
             is BellIntent.Delete -> delete(intent.item)
             is BellIntent.Play -> play(intent.items, intent.index, intent.positionMs)
@@ -1421,12 +1421,16 @@ class BellStore(
         if (state.value.album?.id == playlist.id) openAlbum(playlist)
     }
 
-    private fun createPlaylist(name: String, items: List<Item>) = action {
+    private fun createPlaylist(name: String, items: List<Item>, cover: ByteArray?) = action {
         musicRequire(name.isNotBlank(), MusicErrorKind.PlaylistNameRequired)
         val session = requireNotNull(state.value.session)
-        repository.createPlaylist(session, name.trim(), items.map { it.id })
+        val id = repository.createPlaylist(session, name.trim(), items.map { it.id })
         dialog(null)
-        loadLibrary(session)
+        try {
+            if (cover != null) repository.setPlaylistCover(session, id, cover)
+        } finally {
+            if (state.value.session == session) loadLibrary(session)
+        }
     }
 
     private fun renamePlaylist(item: Item, name: String) = action {
