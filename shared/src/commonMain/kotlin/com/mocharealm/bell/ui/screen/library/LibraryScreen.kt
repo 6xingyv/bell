@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: LicenseRef-Mocha-1.0
 package com.mocharealm.bell.ui.screen.library
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
@@ -8,6 +10,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
@@ -52,6 +56,7 @@ internal fun LibraryScreen(
     val observedState by viewModel.state.collectAsState()
     val screenState = if (state === model.state.value) observedState else viewModel.snapshot(state)
     val errorText = screenState.error?.displayText()
+    val editingSections = editing?.mode == LibraryEditMode.Sections
     val sections =
         if (showDownloadedEntry) {
             librarySectionOptions(state.librarySections).filter { it.shown }.map { it.section }
@@ -60,60 +65,96 @@ internal fun LibraryScreen(
         }
 
     MusicPage(title ?: text_library, scrollToTopKey = editing?.mode) {
-        if (editing?.mode == LibraryEditMode.Sections) {
-            item("edit-sections") { LibrarySectionEditor(editing) }
-            return@MusicPage
-        }
-        if (editing?.mode == LibraryEditMode.Pins) {
-            item("edit-pins") {
-                LibraryPinEditor(model, state, screenState.pins, pinGridColumns, editing)
+        item("library-pins") {
+            LibraryBrowseContent(!editingSections) {
+                LibraryPinGrid(model, state, screenState.pins, pinGridColumns, editing)
             }
-        } else if (screenState.pins.isNotEmpty()) {
-            items(screenState.pins.chunked(pinGridColumns)) { row ->
-                Row(
-                    Modifier.fillMaxWidth().padding(bottom = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    row.forEach { AlbumTile(model, state, it, Modifier.weight(1f), compact = true) }
-                    repeat(pinGridColumns - row.size) { Spacer(Modifier.weight(1f)) }
-                }
-            }
-            item { Spacer(Modifier.height(12.dp)) }
         }
-        item {
-            Column {
-                sections.forEach { section ->
-                    LibrarySectionRow(section, Modifier.clickable { navigate(section.route) }) {
-                        MusicIcon("chevron", libraryControlColor(), 19.dp)
+        item("library-sections") {
+            AnimatedContent(
+                targetState = editingSections,
+                transitionSpec = {
+                    (fadeIn(tween(180, delayMillis = 45)) +
+                            slideInHorizontally(tween(220)) {
+                                if (targetState) it / 16 else -it / 16
+                            })
+                        .togetherWith(fadeOut(tween(100)))
+                        .using(SizeTransform(clip = false) { _, _ -> tween(230) })
+                },
+                label = "Library sections",
+            ) { showEditor ->
+                if (showEditor && editing != null) {
+                    LibrarySectionEditor(editing)
+                } else {
+                    Column {
+                        sections.forEach { section ->
+                            LibrarySectionRow(
+                                section,
+                                Modifier.clickable(enabled = !editingSections) {
+                                    navigate(section.route)
+                                },
+                            ) {
+                                MusicIcon("chevron", libraryControlColor(), 19.dp)
+                            }
+                        }
                     }
                 }
             }
         }
-        item {
-            Spacer(Modifier.height(28.dp))
-            MusicText(text_recently_added, 22, weight = FontWeight.Bold)
-            Spacer(Modifier.height(14.dp))
+        item("library-latest-title") {
+            LibraryBrowseContent(!editingSections) {
+                Column {
+                    Spacer(Modifier.height(28.dp))
+                    MusicText(text_recently_added, 22, weight = FontWeight.Bold)
+                    Spacer(Modifier.height(14.dp))
+                }
+            }
         }
         if (screenState.latest.isEmpty())
-            item {
-                EmptyMusic(
-                    if (showDownloadedEntry) text_library_empty_title else emptyDownloaded,
-                    if (showDownloadedEntry) text_library_empty_description
-                    else emptyDownloadedDescription,
-                )
+            item("library-latest-empty") {
+                LibraryBrowseContent(!editingSections) {
+                    EmptyMusic(
+                        if (showDownloadedEntry) text_library_empty_title else emptyDownloaded,
+                        if (showDownloadedEntry) text_library_empty_description
+                        else emptyDownloadedDescription,
+                    )
+                }
             }
-        items(screenState.latest.chunked(gridColumns)) { row ->
-            Row(
-                Modifier.fillMaxWidth().padding(bottom = 22.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                row.forEach { AlbumTile(model, state, it, Modifier.weight(1f)) }
-                if (preserveLatestGridCellSize)
-                    repeat(gridColumns - row.size) { Spacer(Modifier.weight(1f)) }
-                else if (row.size == 1) Spacer(Modifier.weight(1f))
+        items(screenState.latest.chunked(gridColumns), key = { "latest:${it.first().id}" }) { row ->
+            LibraryBrowseContent(!editingSections) {
+                Row(
+                    Modifier.fillMaxWidth().padding(bottom = 22.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    row.forEach {
+                        AlbumTile(model, state, it, Modifier.weight(1f), enabled = !editingSections)
+                    }
+                    if (preserveLatestGridCellSize)
+                        repeat(gridColumns - row.size) { Spacer(Modifier.weight(1f)) }
+                    else if (row.size == 1) Spacer(Modifier.weight(1f))
+                }
             }
         }
-        errorText?.let { item { MusicText(it, 14, MusicAccent, lines = 3) } }
+        errorText?.let {
+            item {
+                LibraryBrowseContent(!editingSections) { MusicText(it, 14, MusicAccent, lines = 3) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LibraryBrowseContent(visible: Boolean, content: @Composable () -> Unit) {
+    AnimatedVisibility(
+        visible = visible,
+        enter =
+            expandVertically(tween(260), expandFrom = Alignment.Top, clip = false) +
+                fadeIn(tween(180, delayMillis = 50)),
+        exit =
+            shrinkVertically(tween(230), shrinkTowards = Alignment.Top, clip = false) +
+                fadeOut(tween(100)),
+    ) {
+        content()
     }
 }
 
@@ -156,6 +197,7 @@ private fun LibrarySectionRow(
 @Composable
 private fun LibrarySectionEditor(editing: LibraryEditing) {
     val options = editing.sections
+    val haptics = LocalHapticFeedback.current
     val moveUp = stringResource(Res.string.move_song_up)
     val moveDown = stringResource(Res.string.move_song_down)
     val reorder = stringResource(Res.string.reorder_section)
@@ -165,10 +207,11 @@ private fun LibrarySectionEditor(editing: LibraryEditing) {
         editing.sections = options.toMutableList().apply { add(to, removeAt(from)) }
         return true
     }
-    ReorderableColumn(list = options, onSettle = { from, to -> move(from, to) }) {
-        index,
-        option,
-        dragging ->
+    ReorderableColumn(
+        list = options,
+        onSettle = { from, to -> move(from, to) },
+        onMove = { haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick) },
+    ) { index, option, dragging ->
         ReorderableItem(modifier = Modifier.fillMaxWidth()) {
             val toggle = {
                 editing.sections =
@@ -178,7 +221,12 @@ private fun LibrarySectionEditor(editing: LibraryEditing) {
             }
             LibrarySectionRow(
                 option.section,
-                Modifier.background(if (dragging) liftColor else Color.Transparent),
+                Modifier.background(if (dragging) liftColor else Color.Transparent)
+                    .longPressDraggableHandle(
+                        onDragStarted = {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        }
+                    ),
                 selection = {
                     Box(
                         Modifier.size(25.dp)
@@ -201,15 +249,28 @@ private fun LibrarySectionEditor(editing: LibraryEditing) {
                 },
             ) {
                 Box(
-                    Modifier.width(32.dp).fillMaxHeight().draggableHandle().semantics {
-                        contentDescription = reorder
-                        customActions = buildList {
-                            if (index > 0)
-                                add(CustomAccessibilityAction(moveUp) { move(index, index - 1) })
-                            if (index < options.lastIndex)
-                                add(CustomAccessibilityAction(moveDown) { move(index, index + 1) })
-                        }
-                    },
+                    Modifier.width(32.dp)
+                        .fillMaxHeight()
+                        .draggableHandle(
+                            onDragStarted = {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                        )
+                        .semantics {
+                            contentDescription = reorder
+                            customActions = buildList {
+                                if (index > 0)
+                                    add(
+                                        CustomAccessibilityAction(moveUp) { move(index, index - 1) }
+                                    )
+                                if (index < options.lastIndex)
+                                    add(
+                                        CustomAccessibilityAction(moveDown) {
+                                            move(index, index + 1)
+                                        }
+                                    )
+                            }
+                        },
                     contentAlignment = Alignment.CenterEnd,
                 ) {
                     MusicIcon("grabber", libraryControlColor(), 22.dp)

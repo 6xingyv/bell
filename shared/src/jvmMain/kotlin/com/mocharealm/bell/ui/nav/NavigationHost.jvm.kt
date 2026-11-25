@@ -72,7 +72,11 @@ actual fun MusicPage(
 ) {
     val list = rememberLazyListState()
     LaunchedEffect(scrollToTopKey) {
-        if (scrollToTopKey != null) list.scrollToItem(0)
+        if (
+            scrollToTopKey != null &&
+                (list.firstVisibleItemIndex != 0 || list.firstVisibleItemScrollOffset != 0)
+        )
+            list.animateScrollToItem(0)
     }
     val pageList: @Composable () -> Unit = {
         LazyColumn(

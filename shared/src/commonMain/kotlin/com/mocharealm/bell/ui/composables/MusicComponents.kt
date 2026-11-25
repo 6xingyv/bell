@@ -162,7 +162,6 @@ internal fun AlbumTile(
     modifier: Modifier,
     compact: Boolean = false,
     enabled: Boolean = true,
-    artworkModifier: Modifier = Modifier,
     showArtist: Boolean = !compact,
 ) {
     val offline = LocalMusicOffline.current
@@ -175,9 +174,9 @@ internal fun AlbumTile(
             model,
             state,
             item,
-            Modifier.fillMaxWidth().aspectRatio(1f).then(artworkModifier),
+            Modifier.fillMaxWidth().aspectRatio(1f),
             9.dp,
-            sharedKey = link.key.takeIf { enabled },
+            sharedKey = link.key,
             shadowElevation = if (compact) 5.dp else 2.dp,
         )
         Spacer(Modifier.height(5.dp))

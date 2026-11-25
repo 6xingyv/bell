@@ -98,6 +98,5 @@ internal class LibraryEditing {
         mode = null
         removedPins = emptySet()
         pinOrder = emptyList()
-        sections = emptyList()
     }
 }

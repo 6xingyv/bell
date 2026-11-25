@@ -1330,10 +1330,21 @@ class BellStore(
 
     private fun setLibrarySections(sections: List<String>) = action {
         preferencesMutex.withLock {
-            val session = state.value.session ?: return@withLock
-            savePreferenceList(session, "librarySections", sections)
+            val before = state.value
+            val session = before.session ?: return@withLock
+            if (sections == before.librarySections) return@withLock
             mutable.update {
                 if (it.session == session) it.copy(librarySections = sections) else it
+            }
+            try {
+                savePreferenceList(session, "librarySections", sections)
+            } catch (e: Exception) {
+                mutable.update {
+                    if (it.session == session && it.librarySections == sections)
+                        it.copy(librarySections = before.librarySections)
+                    else it
+                }
+                throw e
             }
         }
     }
