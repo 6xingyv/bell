@@ -55,6 +55,7 @@ jobs:
           sudo apt-get install -y ffmpeg
           dotnet publish jellyfin-fixture-source/Jellyfin.Server/Jellyfin.Server.csproj \
             --configuration Release --output "$RUNNER_TEMP/jellyfin" -p:RunAnalyzersDuringBuild=false
+          dotnet build-server shutdown
           fixture="$RUNNER_TEMP/bell-fixture"
           mkdir -p "$fixture/config"
           cat > "$fixture/config/network.xml" <<'EOF'
@@ -90,7 +91,7 @@ jobs:
           arch: x86_64
           profile: pixel_7
           disable-animations: false
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          emulator-options: -no-window -gpu swiftshader -memory 2048 -cores 2 -no-snapshot -noaudio -no-boot-anim
           script: |
             export ANDROID_SERIAL=emulator-5554
             adb -s "$ANDROID_SERIAL" reverse tcp:18096 tcp:18096
