@@ -77,6 +77,9 @@ name: Bell README phone screenshots
 - takeScreenshot: album-artists-phone
 - tapOn:
     point: 12%,78%
+- waitForAnimationToEnd
+- tapOn:
+    point: 12%,78%
 - extendedWaitUntil:
     visible: He Wants Someone to Call Him Papa
     timeout: 10000
