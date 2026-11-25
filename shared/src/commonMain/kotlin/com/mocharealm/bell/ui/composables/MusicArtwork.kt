@@ -51,6 +51,8 @@ fun MusicArtwork(
     sharedKey: String? = null,
     shadowElevation: Dp = 0.dp,
     contentScale: ContentScale = ContentScale.Fit,
+    showBorder: Boolean = true,
+    resolutionHint: Int? = null,
 ) {
     val offline = LocalMusicOffline.current
     val text_artwork_description = stringResource(Res.string.artwork_description)
@@ -128,11 +130,15 @@ fun MusicArtwork(
         val displayedWidth =
             if (wantsCrop && initialRatio != null) maxOf(maxWidth, maxHeight * initialRatio)
             else maxWidth
+        val requestedWidth = resolutionHint?.takeIf { it > 0 }
         val requestWidth =
-            if (stablePlayerArtworkSize)
-                playerArtworkRequestWidth(motion, density)
-                    ?: with(density) { artworkRequestWidth(displayedWidth.toPx()) }
-            else with(density) { artworkRequestWidth(displayedWidth.toPx()) }
+            requestedWidth
+                ?: if (stablePlayerArtworkSize) {
+                    playerArtworkRequestWidth(motion, density)
+                        ?: with(density) { artworkRequestWidth(displayedWidth.toPx()) }
+                } else {
+                    with(density) { artworkRequestWidth(displayedWidth.toPx()) }
+                }
         val revision = state.mediaRevision
         var source by
             remember(model, session, artItem, requestWidth, offline) {
@@ -155,8 +161,14 @@ fun MusicArtwork(
             if (wantsCrop) maxWidth to maxHeight else fittedMusicArtwork(maxWidth, maxHeight, ratio)
         val imageContext = LocalPlatformContext.current
         val request =
-            remember(imageContext, source, stablePlayerArtworkSize, requestWidth) {
-                if (stablePlayerArtworkSize && source != null)
+            remember(
+                imageContext,
+                source,
+                stablePlayerArtworkSize,
+                requestedWidth,
+                requestWidth,
+            ) {
+                if ((stablePlayerArtworkSize || requestedWidth != null) && source != null)
                     ImageRequest.Builder(imageContext)
                         .data(source)
                         .size(requestWidth)
@@ -171,10 +183,14 @@ fun MusicArtwork(
                 .shadow(shadowElevation, shape, clip = false)
                 .clip(shape)
                 .background(if (dark) Color.White.copy(alpha = .12f) else Color(0xFFEEEEEF))
-                .border(
-                    .5.dp,
-                    if (dark) Color.White.copy(alpha = .12f) else Color.Black.copy(alpha = .05f),
-                    shape,
+                .then(
+                    if (showBorder)
+                        Modifier.border(
+                            .5.dp,
+                            if (dark) Color.White.copy(alpha = .12f) else Color.Black.copy(alpha = .05f),
+                            shape,
+                        )
+                    else Modifier,
                 ),
             contentAlignment = Alignment.Center,
         ) {

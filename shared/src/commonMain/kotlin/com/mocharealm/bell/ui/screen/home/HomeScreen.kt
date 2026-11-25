@@ -12,6 +12,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.*
@@ -31,6 +33,7 @@ import com.mocharealm.bell.ui.nav.musicCorners
 import com.mocharealm.bell.ui.nav.musicSharedContainer
 import com.mocharealm.bell.ui.nav.rememberArtworkLink
 import com.mocharealm.bell.ui.screen.home.composables.MusicShelf
+import com.mocharealm.bell.ui.utils.LocalMusicPlayerPlus
 import com.mocharealm.bell.ui.utils.formatBellString
 import org.jetbrains.compose.resources.stringResource
 
@@ -110,51 +113,144 @@ internal fun HomeScreen(
                             rememberArtworkLink(item.id) {
                                 viewModel.accept(HomeIntent.OpenItem(item))
                             }
+                        val cardShape = musicShape(9.dp)
+                        val reflectionColorFilter =
+                            remember {
+                                ColorFilter.colorMatrix(
+                                    ColorMatrix().apply { setToSaturation(1.5f) }
+                                )
+                            }
                         Box(
                             Modifier.width(240.dp)
+                                .padding(top = 14.dp)
                                 .height(320.dp)
-                                .clickable(onClick = link.open)
-                                .then(musicSharedContainer(link.key, musicCorners(16.dp)))
-                                .shadow(8.dp, musicShape(16.dp))
-                                .clip(musicShape(16.dp))
                         ) {
-                            MusicArtwork(
-                                model,
-                                state,
-                                item,
-                                Modifier.fillMaxSize(),
-                                16.dp,
-                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                            )
                             Box(
-                                Modifier.fillMaxSize()
-                                    .clip(musicShape(16.dp))
-                                    .background(
-                                        Brush.verticalGradient(
-                                            listOf(
-                                                Color.Transparent,
-                                                Color.Black.copy(alpha = .9f),
-                                            ),
-                                            startY = 250f,
-                                        )
+                                Modifier.fillMaxSize().shadow(
+                                    22.dp,
+                                    cardShape,
+                                    clip = false,
+                                    ambientColor = Color.Black.copy(alpha = .125f),
+                                    spotColor = Color.Black.copy(alpha = .125f),
+                                )
+                            ) {
+                                Box(
+                                    Modifier.fillMaxSize()
+                                        .then(musicSharedContainer(link.key, musicCorners(9.dp)))
+                                        .graphicsLayer {
+                                            compositingStrategy = CompositingStrategy.Offscreen
+                                            clip = true
+                                            shape = cardShape
+                                        }
+                                        .drawWithCache {
+                                            val outline =
+                                                cardShape.createOutline(size, layoutDirection, this)
+                                            onDrawWithContent {
+                                                drawContent()
+                                                drawOutline(
+                                                    outline,
+                                                    Color.DarkGray.copy(alpha = .6f),
+                                                    style = Stroke(width = 5f),
+                                                    blendMode = BlendMode.Overlay,
+                                                )
+                                                drawOutline(
+                                                    outline,
+                                                    Color.DarkGray.copy(alpha = .08f),
+                                                    style = Stroke(width = 5f),
+                                                )
+                                            }
+                                        }
+                                        .clickable(onClick = link.open)
+                                ) {
+                                    MusicArtwork(
+                                        model,
+                                        state,
+                                        item,
+                                        Modifier.align(Alignment.TopCenter)
+                                            .fillMaxWidth()
+                                            .height(240.dp),
+                                        0.dp,
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                        showBorder = false,
                                     )
-                            )
-                            Column(Modifier.align(Alignment.BottomStart).padding(16.dp)) {
-                                MusicText(
-                                    text_recommended_for_you,
-                                    13,
-                                    Color.White.copy(alpha = .65f),
-                                )
-                                Spacer(Modifier.height(4.dp))
-                                MusicText(
-                                    item.name,
-                                    18,
-                                    Color.White,
-                                    FontWeight.SemiBold,
-                                    lines = 2,
-                                )
-                                Spacer(Modifier.height(4.dp))
-                                MusicText(item.artist, 14, Color.White.copy(alpha = .8f))
+                                    Box(
+                                        Modifier.align(Alignment.BottomCenter)
+                                            .fillMaxWidth()
+                                            .height(200.dp)
+                                            .graphicsLayer {
+                                                compositingStrategy = CompositingStrategy.Offscreen
+                                                clip = true
+                                            }
+                                            .drawWithContent {
+                                                drawContent()
+                                                drawRect(
+                                                    Color.Black.copy(alpha = .3f),
+                                                    blendMode = BlendMode.Overlay,
+                                                )
+                                                drawRect(Color.Black.copy(alpha = .3f))
+                                                drawRect(
+                                                    Brush.verticalGradient(
+                                                        colors =
+                                                            listOf(
+                                                                Color.Transparent,
+                                                                Color(0x4D000000),
+                                                                Color(0xCC000000),
+                                                                Color.Black,
+                                                            ),
+                                                        startY = size.height * .2f,
+                                                        endY = size.height * .6f,
+                                                    ),
+                                                    blendMode = BlendMode.DstIn,
+                                                )
+                                            }
+                                    ) {
+                                        MusicArtwork(
+                                            model,
+                                            state,
+                                            item,
+                                            Modifier.align(Alignment.TopCenter)
+                                                .offset(y = 40.dp)
+                                                .fillMaxWidth()
+                                                .height(240.dp)
+                                                .graphicsLayer {
+                                                    scaleY = -1f
+                                                    colorFilter = reflectionColorFilter
+                                                }
+                                                .blur(48.dp),
+                                            0.dp,
+                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                            showBorder = false,
+                                            resolutionHint = 96,
+                                        )
+                                    }
+                                    CompositionLocalProvider(LocalMusicPlayerPlus provides false) {
+                                        Column(
+                                            Modifier.align(Alignment.BottomStart)
+                                                .padding(16.dp)
+                                                .graphicsLayer { blendMode = BlendMode.Plus }
+                                        ) {
+                                            MusicText(
+                                                text_recommended_for_you,
+                                                13,
+                                                Color.White.copy(alpha = .4f),
+                                            )
+                                            Spacer(Modifier.height(4.dp))
+                                            MusicText(
+                                                item.name,
+                                                18,
+                                                Color.White,
+                                                FontWeight.SemiBold,
+                                                lines = 2,
+                                            )
+                                            Spacer(Modifier.height(4.dp))
+                                            MusicText(
+                                                item.artist,
+                                                14,
+                                                Color.White.copy(alpha = .5f),
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
