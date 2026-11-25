@@ -47,6 +47,10 @@ jobs:
           mkdir -p release-assets-renamed
           while IFS= read -r -d '' file; do
             relative="${file#release-assets/}"
+            if [[ "/$relative/" == */performance/* ]]; then
+              echo "Skipping performance package: $relative"
+              continue
+            fi
             asset_name="${relative//\//-}"
             cp "$file" "release-assets-renamed/$asset_name"
           done < <(find release-assets -type f -print0)
