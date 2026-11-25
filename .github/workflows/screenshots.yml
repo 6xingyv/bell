@@ -49,7 +49,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg
           dotnet publish jellyfin-fixture-source/Jellyfin.Server/Jellyfin.Server.csproj \
-            --configuration Release --output "$RUNNER_TEMP/jellyfin" -p:WarningsNotAsErrors=CA1860
+            --configuration Release --output "$RUNNER_TEMP/jellyfin" -p:RunAnalyzersDuringBuild=false
           fixture="$RUNNER_TEMP/bell-fixture"
           mkdir -p "$fixture/config"
           cat > "$fixture/config/network.xml" <<'EOF'
