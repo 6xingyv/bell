@@ -1,7 +1,12 @@
 name: Capture Bell screenshots
 on:
   workflow_call:
+    inputs:
+      package_run_id:
+        type: string
+        default: ''
 permissions:
+  actions: read
   contents: read
 jobs:
   capture:
@@ -65,6 +70,8 @@ jobs:
         with:
           name: bell-android
           path: packages
+          github-token: ${{ inputs.package_run_id != '' && github.token || '' }}
+          run-id: ${{ inputs.package_run_id || github.run_id }}
       - name: Select the emulator APK and enable KVM
         shell: bash
         run: |
