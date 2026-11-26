@@ -187,10 +187,11 @@ fun MusicArtwork(
                     if (showBorder)
                         Modifier.border(
                             .5.dp,
-                            if (dark) Color.White.copy(alpha = .12f) else Color.Black.copy(alpha = .05f),
+                            if (dark) Color.White.copy(alpha = .12f)
+                            else Color.Black.copy(alpha = .05f),
                             shape,
                         )
-                    else Modifier,
+                    else Modifier
                 ),
             contentAlignment = Alignment.Center,
         ) {

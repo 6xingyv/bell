@@ -114,25 +114,19 @@ internal fun HomeScreen(
                                 viewModel.accept(HomeIntent.OpenItem(item))
                             }
                         val cardShape = musicShape(9.dp)
-                        val reflectionColorFilter =
-                            remember {
-                                ColorFilter.colorMatrix(
-                                    ColorMatrix().apply { setToSaturation(1.5f) }
-                                )
-                            }
-                        Box(
-                            Modifier.width(240.dp)
-                                .padding(top = 14.dp)
-                                .height(320.dp)
-                        ) {
+                        val reflectionColorFilter = remember {
+                            ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(1.5f) })
+                        }
+                        Box(Modifier.width(240.dp).padding(top = 14.dp).height(320.dp)) {
                             Box(
-                                Modifier.fillMaxSize().shadow(
-                                    22.dp,
-                                    cardShape,
-                                    clip = false,
-                                    ambientColor = Color.Black.copy(alpha = .125f),
-                                    spotColor = Color.Black.copy(alpha = .125f),
-                                )
+                                Modifier.fillMaxSize()
+                                    .shadow(
+                                        22.dp,
+                                        cardShape,
+                                        clip = false,
+                                        ambientColor = Color.Black.copy(alpha = .125f),
+                                        spotColor = Color.Black.copy(alpha = .125f),
+                                    )
                             ) {
                                 Box(
                                     Modifier.fillMaxSize()
@@ -218,7 +212,8 @@ internal fun HomeScreen(
                                                 }
                                                 .blur(48.dp),
                                             0.dp,
-                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                            contentScale =
+                                                androidx.compose.ui.layout.ContentScale.Crop,
                                             showBorder = false,
                                             resolutionHint = 96,
                                         )

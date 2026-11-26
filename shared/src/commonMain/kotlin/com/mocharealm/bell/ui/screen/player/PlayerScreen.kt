@@ -448,10 +448,11 @@ internal fun PlayerScreen(
                             if (coverPaused)
                                 tween(
                                     480,
-                                    easing = Easing { fraction ->
-                                        val inverse = 1f - fraction
-                                        1f - inverse * inverse * inverse * inverse
-                                    },
+                                    easing =
+                                        Easing { fraction ->
+                                            val inverse = 1f - fraction
+                                            1f - inverse * inverse * inverse * inverse
+                                        },
                                 )
                             else spring(dampingRatio = .65f, stiffness = 150f),
                         label = "paused cover scale",
